@@ -56,9 +56,9 @@ docker compose exec web python manage.py crear_agentes       # crea los agentes 
 
 | URL | Qué es |
 |---|---|
-| http://localhost:8000/ui/nuevo/ | Formulario público para crear una solicitud |
-| http://localhost:8000/ui/ | Interfaz de agentes (usuario `ana` o `luis`, contraseña `agente-dev-123`) |
-| http://localhost:8000/tickets/ | API navegable de DRF |
+| http://localhost:8000/nuevo/ | Formulario público para crear una solicitud |
+| http://localhost:8000/ | Interfaz de agentes (usuario `ana` o `luis`, contraseña `agente-dev-123`) |
+| http://localhost:8000/api/ | API navegable de DRF (los tickets en `/api/tickets/`) |
 | http://localhost:8000/admin/ | Panel de administración (requiere superusuario, ver [§9](#9-cómo-está-organizado-el-código-django)) |
 
 Para parar: `docker compose down`.
@@ -177,22 +177,22 @@ Las reglas están en [`soporte/models.py`](soporte/models.py) (`validar_estado`,
 
 | Método | Ruta | Acción | Acceso |
 |---|---|---|---|
-| `POST` | `/tickets/` | Crear solicitud | Público |
-| `GET` | `/tickets/` | Listar | Agente |
-| `GET` | `/tickets/{id}/` | Detalle | Agente |
-| `PATCH` | `/tickets/{id}/estado/` | Cambiar estado (+ historial) | Agente |
-| `PATCH` | `/tickets/{id}/asignar/` | Asignar o desasignar (+ historial) | Agente |
-| `POST` | `/tickets/{id}/comentarios/` | Añadir comentario interno | Agente |
-| `GET` | `/tickets/{id}/comentarios/` | Listar comentarios | Agente |
-| `GET` | `/tickets/{id}/historial/` | Ver historial | Agente |
-| `POST` | `/token/` | Obtener token con `username` y `password` | Público |
+| `POST` | `/api/tickets/` | Crear solicitud | Público |
+| `GET` | `/api/tickets/` | Listar | Agente |
+| `GET` | `/api/tickets/{id}/` | Detalle | Agente |
+| `PATCH` | `/api/tickets/{id}/estado/` | Cambiar estado (+ historial) | Agente |
+| `PATCH` | `/api/tickets/{id}/asignar/` | Asignar o desasignar (+ historial) | Agente |
+| `POST` | `/api/tickets/{id}/comentarios/` | Añadir comentario interno | Agente |
+| `GET` | `/api/tickets/{id}/comentarios/` | Listar comentarios | Agente |
+| `GET` | `/api/tickets/{id}/historial/` | Ver historial | Agente |
+| `POST` | `/api/token/` | Obtener token con `username` y `password` | Público |
 
 **Filtros del listado**: `?estado=abierto`, `?prioridad=alta`, `?agente__username=luis`. Se pueden combinar.
 
 ### Ejemplos
 
 ```bash
-B=http://localhost:8000
+B=http://localhost:8000/api
 J="Content-Type: application/json"
 T="Authorization: Token <token de ana>"     # lo imprime: manage.py crear_agentes
 ```
@@ -267,7 +267,7 @@ curl $B/tickets/1/historial/ -H "$T"
 | `401` | No hay credenciales |
 | `403` | Hay credenciales, pero el usuario no es agente |
 | `404` | El ticket no existe |
-| `405` | Método no permitido (p. ej. `DELETE /tickets/1/`) |
+| `405` | Método no permitido (p. ej. `DELETE /api/tickets/1/`) |
 
 Los errores vienen en el formato de DRF:
 
@@ -285,9 +285,9 @@ Está hecha con **templates de Django** (HTML generado en el servidor), sin Java
 
 | Ruta | Página | Acceso |
 |---|---|---|
-| `/ui/nuevo/` | Formulario para abrir una solicitud | Público |
-| `/ui/` | Lista con filtros por estado, prioridad, "asignados a mí" y "sin asignar" | Agente |
-| `/ui/tickets/<id>/` | Detalle: cambio de estado (solo muestra transiciones válidas), asignación, comentarios e historial | Agente |
+| `/nuevo/` | Formulario para abrir una solicitud | Público |
+| `/` | Lista con filtros por estado, prioridad, "asignados a mí" y "sin asignar" | Agente |
+| `/tickets/<id>/` | Detalle: cambio de estado (solo muestra transiciones válidas), asignación, comentarios e historial | Agente |
 | `/cuentas/login/` | Login de agentes | Público |
 
 Las acciones siguen el patrón **POST → redirect → GET**: si recargas la página, la acción no se repite. Si un formulario tiene errores, la página se vuelve a pintar con el mensaje.
@@ -297,7 +297,7 @@ Las acciones siguen el patrón **POST → redirect → GET**: si recargas la pá
 ```
    Navegador (persona)                   App móvil / frontend JS / otro sistema
           │                                            │
-   /ui/  → views_ui.py + forms.py             /tickets/ → views.py + serializers.py (DRF)
+   /     → views_ui.py + forms.py             /api/ → views.py + serializers.py (DRF)
           devuelve HTML                                devuelve JSON
           └───────────────────────┬────────────────────┘
                models.py: validar_estado(), validar_asignacion(), cambiar_estado(), asignar()
@@ -322,7 +322,7 @@ Un **agente** es un `User` de Django con `is_staff=True`.
 
 ```bash
 docker compose exec web python manage.py crear_agentes                       # imprime los tokens
-curl -X POST http://localhost:8000/token/ -d 'username=ana&password=agente-dev-123'   # {"token": "..."}
+curl -X POST http://localhost:8000/api/token/ -d 'username=ana&password=agente-dev-123'   # {"token": "..."}
 ```
 
 Crear un ticket es lo único que no exige autenticación.
@@ -334,7 +334,7 @@ Crear un ticket es lo único que no exige autenticación.
 | Pieza | Archivo | Papel |
 |---|---|---|
 | Settings | `config/settings.py` | Apps instaladas, BD, middleware, configuración de DRF |
-| Rutas | `config/urls.py` → `soporte/urls.py` (API) y `soporte/urls_ui.py` (web) | URL → vista |
+| Rutas | `config/urls.py` → `soporte/urls_ui.py` (web, en `/`) y `soporte/urls.py` (API, en `/api/`) | URL → vista |
 | Modelos | `soporte/models.py` | Tablas (vía migraciones) y reglas de negocio |
 | Serializers | `soporte/serializers.py` | JSON ↔ modelo, validación de la API |
 | ViewSet | `soporte/views.py` | `TicketViewSet` con `@action` para `estado`, `asignar`, `comentarios` e `historial` |

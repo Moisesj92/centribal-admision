@@ -20,7 +20,7 @@ class TicketApiTest(APITestCase):
     def crear(self, **extra):
         self.client.force_authenticate(None)  # el cliente no necesita cuenta
         respuesta = self.client.post(
-            "/tickets/", {"asunto": "Impresora", "descripcion": "Atasca papel", **extra}, format="json"
+            "/api/tickets/", {"asunto": "Impresora", "descripcion": "Atasca papel", **extra}, format="json"
         )
         self.assertEqual(respuesta.status_code, status.HTTP_201_CREATED, respuesta.data)
         self.client.force_authenticate(self.ana)
@@ -45,7 +45,7 @@ class TicketApiTest(APITestCase):
         ]
         for datos in casos:
             with self.subTest(datos=datos):
-                respuesta = self.client.post("/tickets/", datos, format="json")
+                respuesta = self.client.post("/api/tickets/", datos, format="json")
                 self.assertEqual(respuesta.status_code, status.HTTP_400_BAD_REQUEST)
 
     # --- permisos ---
@@ -55,32 +55,32 @@ class TicketApiTest(APITestCase):
         for usuario, esperado in ((None, 401), (self.cliente, 403), (self.ana, 200)):
             with self.subTest(usuario=usuario):
                 self.client.force_authenticate(usuario)
-                self.assertEqual(self.client.get("/tickets/").status_code, esperado)
-                self.assertEqual(self.client.get(f"/tickets/{ticket['id']}/").status_code, esperado)
+                self.assertEqual(self.client.get("/api/tickets/").status_code, esperado)
+                self.assertEqual(self.client.get(f"/api/tickets/{ticket['id']}/").status_code, esperado)
 
     def test_token(self):
-        respuesta = self.client.post("/token/", {"username": "ana", "password": "x"})
+        respuesta = self.client.post("/api/token/", {"username": "ana", "password": "x"})
         self.client.force_authenticate(None)
         self.client.credentials(HTTP_AUTHORIZATION="Token " + respuesta.data["token"])
-        self.assertEqual(self.client.get("/tickets/").status_code, 200)
+        self.assertEqual(self.client.get("/api/tickets/").status_code, 200)
 
     # --- listar ---
 
     def test_filtros(self):
         self.crear(prioridad="alta")
         self.crear(prioridad="baja")
-        self.assertEqual(len(self.client.get("/tickets/").data), 2)
-        alta = self.client.get("/tickets/", {"prioridad": "alta"}).data
+        self.assertEqual(len(self.client.get("/api/tickets/").data), 2)
+        alta = self.client.get("/api/tickets/", {"prioridad": "alta"}).data
         self.assertEqual([t["prioridad"] for t in alta], ["alta"])
-        self.assertEqual(self.client.get("/tickets/", {"estado": "cerrado"}).data, [])
+        self.assertEqual(self.client.get("/api/tickets/", {"estado": "cerrado"}).data, [])
 
     def test_detalle_inexistente(self):
-        self.assertEqual(self.client.get("/tickets/999/").status_code, 404)
+        self.assertEqual(self.client.get("/api/tickets/999/").status_code, 404)
 
     # --- estado, asignación, comentarios e historial ---
 
     def test_flujo_completo(self):
-        url = f"/tickets/{self.crear(prioridad='alta')['id']}"
+        url = f"/api/tickets/{self.crear(prioridad='alta')['id']}"
 
         respuesta = self.client.patch(url + "/asignar/", {"agente": "luis"}, format="json")
         self.assertEqual(respuesta.data["agente"], "luis")
@@ -100,7 +100,7 @@ class TicketApiTest(APITestCase):
                          [("agente", None, "luis", "ana"), ("estado", "abierto", "en_progreso", "luis")])
 
     def test_cerrado_no_se_reabre_ni_se_reasigna(self):
-        url = f"/tickets/{self.crear()['id']}"
+        url = f"/api/tickets/{self.crear()['id']}"
         self.assertEqual(self.client.patch(url + "/estado/", {"estado": "cerrado"}, format="json").status_code, 200)
         for ruta, datos in (("/estado/", {"estado": "abierto"}), ("/asignar/", {"agente": "luis"})):
             with self.subTest(ruta=ruta):
@@ -109,7 +109,7 @@ class TicketApiTest(APITestCase):
         self.assertEqual(len(self.client.get(url + "/historial/").data), 1)
 
     def test_errores_de_validacion(self):
-        url = f"/tickets/{self.crear()['id']}"
+        url = f"/api/tickets/{self.crear()['id']}"
         casos = [
             ("/estado/", {"estado": "pausado"}),
             ("/estado/", {"estado": "abierto"}),  # mismo estado
@@ -125,12 +125,12 @@ class TicketApiTest(APITestCase):
         self.assertEqual(respuesta.status_code, 400)
 
     def test_desasignar(self):
-        url = f"/tickets/{self.crear()['id']}"
+        url = f"/api/tickets/{self.crear()['id']}"
         self.client.patch(url + "/asignar/", {"agente": "luis"}, format="json")
         respuesta = self.client.patch(url + "/asignar/", {"agente": None}, format="json")
         self.assertIsNone(respuesta.data["agente"])
 
     def test_metodo_no_permitido(self):
-        url = f"/tickets/{self.crear()['id']}/"
+        url = f"/api/tickets/{self.crear()['id']}/"
         self.assertEqual(self.client.delete(url).status_code, 405)
         self.assertEqual(self.client.put(url, {}, format="json").status_code, 405)

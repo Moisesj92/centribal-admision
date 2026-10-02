@@ -20,7 +20,7 @@ class TicketViewSet(
 ):
     """Tickets de soporte.
 
-    - `POST /tickets/` es público (lo usa el cliente).
+    - `POST /api/tickets/` es público (lo usa el cliente).
     - El resto exige un agente autenticado (permiso por defecto IsAdminUser = is_staff).
     """
 

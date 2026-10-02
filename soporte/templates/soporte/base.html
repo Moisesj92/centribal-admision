@@ -59,8 +59,8 @@
       <nav>
         {% if user.is_staff %}<a href="{% url 'ui:lista' %}">Tickets</a>{% endif %}
         <a href="{% url 'ui:nuevo' %}">Nueva solicitud</a>
-        <a href="/tickets/">API</a>
-        <a href="/admin/">Admin</a>
+        <a href="{% url 'api-root' %}">API</a>
+        <a href="{% url 'admin:index' %}">Admin</a>
       </nav>
       <div class="usuario">
         {% if user.is_authenticated %}

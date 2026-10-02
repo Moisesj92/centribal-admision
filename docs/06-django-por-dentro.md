@@ -88,9 +88,9 @@ En los **URLconf**: módulos de Python con una lista `urlpatterns`. Django empie
 # config/urls.py — la raíz
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("ui/", include("soporte.urls_ui")),   # delega todo lo que empiece por ui/
-    path("token/", obtain_auth_token),
-    path("", include("soporte.urls")),         # API de DRF
+    path("api/", include("soporte.urls")),       # delega todo lo que empiece por api/ (DRF)
+    path("api/token/", obtain_auth_token),
+    path("", include("soporte.urls_ui")),        # interfaz web en la raíz
 ]
 
 # soporte/urls_ui.py — rutas de la app
@@ -103,11 +103,11 @@ urlpatterns = [
 Cómo funciona:
 
 1. El resolver prueba los patrones **en orden**; gana el primero que encaja.
-2. `include()` corta el prefijo (`ui/`) y sigue buscando en el otro módulo. Así cada app tiene sus propias rutas.
-3. Los **convertidores** (`<int:pk>`, `<slug:x>`, `<uuid:id>`) validan y convierten: `/ui/tickets/abc/` ni siquiera encaja, así que da 404 sin llegar a la vista. La vista recibe `pk=4` ya como `int`.
-4. `name="detalle"` + `app_name="ui"` permiten la **resolución inversa**: `reverse("ui:detalle", args=[4])` en Python o `{% url 'ui:detalle' 4 %}` en templates. Si mañana cambias la URL, no hay que tocar ningún enlace.
+2. `include()` corta el prefijo (`api/`) y sigue buscando en el otro módulo. Así cada app tiene sus propias rutas.
+3. Los **convertidores** (`<int:pk>`, `<slug:x>`, `<uuid:id>`) validan y convierten: `/tickets/abc/` ni siquiera encaja, así que da 404 sin llegar a la vista. La vista recibe `pk=4` ya como `int`.
+4. `name="detalle"` + `app_name="ui"` permiten la **resolución inversa**: `reverse("ui:detalle", args=[4])` en Python o `{% url 'ui:detalle' 4 %}` en templates. Si mañana cambias la URL, no hay que tocar ningún enlace. Pasó en este proyecto: la interfaz web estaba en `/ui/` y se movió a `/` cambiando una línea de `config/urls.py`. Todos los enlaces hechos con `{% url %}` y `redirect()` siguieron funcionando; el único que hubo que corregir fue uno escrito a mano en el menú.
 
-**DRF** añade los **routers**: `DefaultRouter().register("tickets", TicketViewSet)` genera solo las rutas `tickets/` y `tickets/{pk}/`, más una por cada `@action` (`tickets/{pk}/estado/`…).
+**DRF** añade los **routers**: `DefaultRouter().register("tickets", TicketViewSet)` genera solo las rutas `tickets/` y `tickets/{pk}/`, más una por cada `@action` (`tickets/{pk}/estado/`…). Con el prefijo del `include` quedan como `/api/tickets/…`.
 
 Sin framework, esto sería una lista de expresiones regulares y un bucle que las prueba una a una: la misma idea, pero sin convertidores, nombres ni `include`.
 
@@ -279,7 +279,7 @@ class TicketViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     def estado(self, request, pk=None): ...
 ```
 
-Por eso `DELETE /tickets/1/` devuelve 405: no incluimos `DestroyModelMixin`, así que esa operación **no existe**. Lo que no está heredado no se puede hacer.
+Por eso `DELETE /api/tickets/1/` devuelve 405: no incluimos `DestroyModelMixin`, así que esa operación **no existe**. Lo que no está heredado no se puede hacer.
 
 ---
 
