@@ -1,24 +1,72 @@
-# Plantilla común: misma imagen y el proyecto montado en /app.
-x-python: &python
-  build: .
-  image: centribal-admision
-  pull_policy: build     # la imagen se construye aquí, no se descarga
+# Uso:
+#   docker compose up -d                       desarrollo → http://localhost:8000
+#   docker compose watch                       igual, y reconstruye solo al cambiar requirements*.txt
+#   docker compose run --rm shell              terminal (tests, ejercicios, manage.py…)
+#   docker compose --profile prod up -d prod   imagen de producción → http://localhost:8001
+
+# Configuración común de los servicios de desarrollo.
+x-dev: &dev
+  build:
+    context: .
+    target: dev
+  image: centribal-admision:dev
+  pull_policy: build      # la imagen se construye aquí, no se busca en Docker Hub
+  env_file:
+    - path: .env          # opcional: copia .env.example a .env para cambiar variables
+      required: false
   volumes:
-    - .:/app
+    - .:/app              # el código del ordenador, en vivo dentro del contenedor
+
+x-healthcheck: &healthcheck
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud/')"]
+  interval: 10s
+  timeout: 3s
+  start_period: 15s
+  retries: 3
 
 services:
-  # Aplicación Django → web en http://localhost:8000/, API en /api/, admin en /admin/
+  # Desarrollo: runserver con recarga automática. Web en /, API en /api/, admin en /admin/.
   web:
-    <<: *python
+    <<: *dev
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
+    healthcheck: *healthcheck
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: rebuild
+          path: requirements.txt
+        - action: rebuild
+          path: requirements-dev.txt
 
-  # Terminal para ejercicios, tests y debug: docker compose run --rm --service-ports shell
+  # Terminal para tests, ejercicios y debug. No arranca con "up", solo con "run".
   shell:
-    <<: *python
+    <<: *dev
+    command: bash
     ports:
-      - "5678:5678"   # debugpy
+      - "5678:5678"       # debugpy (con --service-ports)
     stdin_open: true
     tty: true
-    profiles: ["tools"]   # no arranca con "docker compose up", solo con "run"
+    profiles: ["tools"]
+
+  # Producción en local: gunicorn + WhiteNoise, DEBUG desactivado y su propia base de datos.
+  prod:
+    build:
+      context: .
+      target: prod
+    image: centribal-admision:prod
+    pull_policy: build
+    environment:
+      # En un servidor real la clave va en un gestor de secretos, nunca en el repositorio.
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-solo-para-probar-prod-en-local}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+    ports:
+      - "8001:8000"
+    volumes:
+      - datos-prod:/data  # volumen con nombre: los datos sobreviven a "down" (no a "down -v")
+    restart: unless-stopped
+    profiles: ["prod"]
+
+volumes:
+  datos-prod:

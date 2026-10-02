@@ -1,6 +1,14 @@
+# Lo que NO se envía a Docker al construir (imagen más pequeña y sin secretos).
 .git
+.gitignore
+.vscode
+.env
+.venv/
 __pycache__/
 *.pyc
+.mypy_cache/
 *.sqlite3
-.venv/
+staticfiles/
 .DS_Store
+Dockerfile
+compose.yaml

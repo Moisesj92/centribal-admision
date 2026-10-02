@@ -70,28 +70,70 @@ Para parar: `docker compose down`.
 
 ## 3. Entorno Docker
 
-- **Imagen**: `python:3.13-slim` (Debian slim oficial). Python 3.13 porque Django 5.2 LTS la soporta oficialmente.
-- **Volumen**: el proyecto se monta en `/app` dentro del contenedor. Los cambios en el código se ven al instante y `runserver` se recarga solo.
-- **Dependencias** ([`requirements.txt`](requirements.txt)): `Django`, `djangorestframework`, `django-filter`, `debugpy`, `mypy`.
+### Imagen ([`Dockerfile`](Dockerfile)): una receta, dos destinos
+
+Es un Dockerfile **multi-stage**: varias etapas en un solo archivo, y cada servicio elige con `target` hasta dónde construir.
+
+```
+base  python:3.13-slim + usuario "app" (sin privilegios) + requirements.txt
+ ├── dev   + requirements-dev.txt (debugpy, mypy). El código llega por volumen → recarga en vivo
+ └── prod  + código copiado + collectstatic + gunicorn + HEALTHCHECK. DEBUG=0, BD en /data
+```
+
+| | `dev` | `prod` |
+|---|---|---|
+| Servidor | `runserver` (recarga al guardar) | **gunicorn** con 3 workers |
+| Código | Volumen `.:/app` (en vivo) | Copiado dentro de la imagen |
+| Estáticos | Los sirve Django (con DEBUG) | `collectstatic` + **WhiteNoise** |
+| `DEBUG` | Activado | Desactivado (errores 404/500 sin detalles internos) |
+| Base de datos | `db.sqlite3` del proyecto | Volumen con nombre `datos-prod` (`/data/db.sqlite3`) |
+| Tamaño aprox. | ~310 MB | ~200 MB |
+
+Buenas prácticas aplicadas:
+- **Usuario sin privilegios** (`app`, UID 1000): si alguien explotara la aplicación, no sería root dentro del contenedor.
+- **Orden de capas para la caché**: primero `requirements.txt` y luego el código. Cambiar código no reinstala dependencias.
+- **Cache mount de pip** (`RUN --mount=type=cache`): reconstruir tras cambiar `requirements.txt` no vuelve a descargar todo.
+- **`.dockerignore`**: ni `.git`, ni `.env`, ni la base de datos entran en la imagen.
+- **Healthcheck** contra `/salud/`: Docker sabe si la aplicación responde, no solo si el proceso existe (`docker compose ps` muestra `healthy`).
+- **`exec gunicorn`**: gunicorn pasa a ser el proceso principal y recibe las señales de parada de Docker (cierre limpio).
+
+### Dependencias
+
+| Archivo | Contenido | Dónde se instala |
+|---|---|---|
+| [`requirements.txt`](requirements.txt) | Django 5.2 LTS, DRF, django-filter, gunicorn, whitenoise | `dev` y `prod` |
+| [`requirements-dev.txt`](requirements-dev.txt) | `-r requirements.txt` + debugpy, mypy | Solo `dev` |
+
+Las versiones tienen límite superior (`<5.3`, `<4`…), para que una versión mayor nueva no rompa el proyecto sin avisar.
 
 ### Servicios ([`compose.yaml`](compose.yaml))
 
-| Servicio | Puerto | Para qué |
-|---|---|---|
-| `web` | 8000 | La aplicación: `migrate` + `runserver`. Arranca con `docker compose up` |
-| `shell` | 5678 (debugpy) | Terminal para ejercicios, tests y depuración. Solo se usa con `docker compose run` |
+| Servicio | Puerto | Arranca con | Para qué |
+|---|---|---|---|
+| `web` | 8000 | `docker compose up -d` | Desarrollo: `migrate` + `runserver`, healthcheck, se reinicia solo si cae |
+| `shell` | 5678 (debugpy) | `docker compose run --rm shell` | Terminal para tests, ejercicios, `manage.py` y depuración |
+| `prod` | 8001 | `docker compose --profile prod up -d prod` | La imagen de producción funcionando en local |
+
+`shell` y `prod` están en **perfiles** (`tools`, `prod`), así que `docker compose up` no los arranca. Las variables de desarrollo se pueden cambiar copiando [`.env.example`](.env.example) a `.env`; Compose lo lee solo y git lo ignora.
 
 ### Comandos útiles
 
 ```bash
-docker compose up -d                                   # arrancar en segundo plano
+docker compose up -d                                   # arrancar desarrollo en segundo plano
+docker compose watch                                   # igual, y reconstruye solo al cambiar requirements*.txt
+docker compose ps                                      # estado (healthy / unhealthy)
 docker compose logs -f web                             # ver logs
 docker compose exec web python manage.py shell         # consola de Django con los modelos cargados
-docker compose run --rm shell                          # terminal dentro de un contenedor nuevo
-docker compose run --rm --service-ports shell          # igual, publicando el 5678 para VS Code
-docker compose build                                   # reconstruir la imagen (tras cambiar requirements.txt)
-docker compose down                                    # parar y borrar contenedores
-docker compose down --rmi local                        # además borra la imagen: empezar de cero
+docker compose run --rm shell                          # terminal en un contenedor nuevo
+docker compose run --rm shell python manage.py test    # un comando suelto
+docker compose run --rm --service-ports shell          # terminal publicando el 5678 para VS Code
+docker compose build                                   # reconstruir la imagen de desarrollo
+
+docker compose --profile prod up -d --build prod       # producción en local → http://localhost:8001
+docker compose --profile prod exec prod python manage.py check --deploy   # revisión de seguridad
+docker compose --profile prod down                     # parar todo, incluido prod
+
+docker compose down --rmi local -v                     # borrar contenedores, imágenes y volúmenes: empezar de cero
 ```
 
 ---
@@ -116,7 +158,11 @@ centribal-admision/
 │   └── tests/                     # test_api.py, test_ui.py
 ├── docs/                          # teoría de Python y de Django
 ├── ejercicios/                    # un script por tema
-├── Dockerfile, compose.yaml, requirements.txt
+├── Dockerfile                     # multi-stage: dev y prod
+├── compose.yaml                   # servicios web, shell y prod
+├── requirements.txt               # dependencias de ejecución
+├── requirements-dev.txt           # + herramientas de desarrollo
+├── .env.example                   # plantilla de variables (copiar a .env)
 ├── .vscode/launch.json            # "Attach to Docker" (debugpy, puerto 5678)
 └── PLAN.md                        # plan original de trabajo
 ```
@@ -415,7 +461,9 @@ docker compose run --rm shell mypy ejercicios/03_tipado.py
 | `DJANGO_SECRET_KEY` | valor inseguro de desarrollo | Clave criptográfica (obligatorio cambiarla en producción) |
 | `DJANGO_DEBUG` | `1` | `0` desactiva el modo debug |
 | `DJANGO_ALLOWED_HOSTS` | `*` si hay debug | Dominios permitidos, separados por comas, cuando `DJANGO_DEBUG=0` |
-| `DJANGO_DB_PATH` | `db.sqlite3` | Ruta de la base de datos |
+| `DJANGO_DB_PATH` | `db.sqlite3` (en `prod`: `/data/db.sqlite3`) | Ruta de la base de datos |
+
+En desarrollo se cambian con un archivo `.env` (ver [`.env.example`](.env.example)). El servicio `prod` ya fija `DJANGO_DEBUG=0`, `DJANGO_DB_PATH` y `DJANGO_ALLOWED_HOSTS`, y toma `DJANGO_SECRET_KEY` del entorno si existe.
 
 ---
 
@@ -437,7 +485,7 @@ docker compose run --rm shell mypy ejercicios/03_tipado.py
 - No hay paginación en la API (en DRF se activa con `DEFAULT_PAGINATION_CLASS`).
 - El cliente no tiene cuenta: no puede consultar sus solicitudes después de crearlas.
 - No hay notificaciones (email al asignar, etc.) ni tareas en segundo plano.
-- `runserver` es solo para desarrollo. En producción haría falta gunicorn, PostgreSQL, `DJANGO_DEBUG=0` y servir los estáticos (`collectstatic` + WhiteNoise).
+- La imagen `prod` ya usa gunicorn, WhiteNoise y `DEBUG=0`, pero para un despliegue real faltan: PostgreSQL en lugar de SQLite, HTTPS delante (proxy o plataforma) y los ajustes que pide `check --deploy` (`SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, HSTS y una `SECRET_KEY` real).
 - Posibles mejoras: uv + Ruff + mypy con django-stubs, CI, documentación OpenAPI (`drf-spectacular`), HTMX en la interfaz web.
 
 ---
@@ -453,5 +501,7 @@ docker compose run --rm shell mypy ejercicios/03_tipado.py
 | `no such table` | Faltan migraciones: `docker compose exec web python manage.py migrate` (el servicio `web` las aplica al arrancar) |
 | `/admin/` dice que no tienes permisos | Entra con un superusuario (`createsuperuser`) |
 | Empezar con datos limpios | `docker compose down`, borra `db.sqlite3` y vuelve a `docker compose up -d` |
-| Cambié `requirements.txt` y no se nota | `docker compose build` |
+| Cambié `requirements.txt` y no se nota | `docker compose build` (o trabaja con `docker compose watch`) |
+| `docker compose ps` dice `unhealthy` | `docker compose logs web`: la app no responde en `/salud/` (error de arranque, migración fallida…) |
+| `Permission denied` al escribir en el proyecto (Linux) | El contenedor usa el UID 1000. Si el tuyo es otro: `docker compose build --build-arg UID=$(id -u)` |
 | pdb no responde | Ejecuta sin `-T`: necesita una terminal interactiva |

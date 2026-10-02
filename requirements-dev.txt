@@ -1,0 +1,4 @@
+# Herramientas de desarrollo (solo en la imagen dev).
+-r requirements.txt
+debugpy>=1.8,<2
+mypy>=2.4,<3
