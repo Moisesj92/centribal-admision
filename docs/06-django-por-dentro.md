@@ -1,6 +1,6 @@
 # Django por dentro
 
-Cómo funciona Django de verdad, explicado con el código de `fase2_django/`. Se puede leer de arriba abajo: sigue el recorrido de una petición.
+Cómo funciona Django de verdad, explicado con el código de este proyecto. Se puede leer de arriba abajo: sigue el recorrido de una petición.
 
 ---
 
@@ -54,7 +54,7 @@ En resumen: **lo que en otros frameworks se llama "controlador", en Django se ll
 
 ### WSGI
 
-**WSGI** es un estándar de Python (PEP 3333): una función `app(environ, start_response)` que cualquier servidor sabe llamar. Gracias a él, Django no tiene que saber nada de sockets. En la fase 1 lo hacíamos todo a mano con `http.server`. Existe también **ASGI** (`config/asgi.py`), la versión asíncrona, para websockets y `async def`.
+**WSGI** es un estándar de Python (PEP 3333): una función `app(environ, start_response)` que cualquier servidor sabe llamar. Gracias a él, Django no tiene que saber nada de sockets. Sin framework, habría que hacerlo a mano con `http.server`. Existe también **ASGI** (`config/asgi.py`), la versión asíncrona, para websockets y `async def`.
 
 ### Middleware: capas de cebolla
 
@@ -109,7 +109,7 @@ Cómo funciona:
 
 **DRF** añade los **routers**: `DefaultRouter().register("tickets", TicketViewSet)` genera solo las rutas `tickets/` y `tickets/{pk}/`, más una por cada `@action` (`tickets/{pk}/estado/`…).
 
-Compara con la fase 1: una lista de regex escrita a mano y un bucle en `_despachar`. Es la misma idea, pero ahí no hay convertidores, nombres ni `include`.
+Sin framework, esto sería una lista de expresiones regulares y un bucle que las prueba una a una: la misma idea, pero sin convertidores, nombres ni `include`.
 
 ---
 
@@ -290,7 +290,7 @@ Por eso `DELETE /tickets/1/` devuelve 405: no incluimos `DestroyModelMixin`, as�
 | **MTV** (variante de MVC) | Separación modelo / template / vista |
 | **Front Controller** | Un único punto de entrada (`WSGIHandler`) recibe todas las peticiones y las reparte |
 | **Chain of Responsibility / Decorator** | Middleware: cada capa decide si pasa la petición a la siguiente. Los decoradores (`@require_POST`, `@user_passes_test`) envuelven vistas |
-| **Active Record** | El objeto sabe guardarse: `ticket.save()`, `ticket.delete()` (frente a *Data Mapper*, donde un repositorio guarda el objeto, como nuestra fase 1) |
+| **Active Record** | El objeto sabe guardarse: `ticket.save()`, `ticket.delete()` (frente a *Data Mapper*, donde un objeto aparte, el repositorio, guarda los datos) |
 | **Metaclase / declarativo** | Modelos, Forms y Serializers: declaras campos como atributos de clase |
 | **Lazy evaluation** | QuerySets, `reverse_lazy`, `gettext_lazy`, `settings` |
 | **Template Method** | Vistas genéricas y DRF: el flujo está fijo y tú sobrescribes ganchos (`get_queryset`, `get_permissions`, `perform_create`, `clean_<campo>`) |
@@ -322,7 +322,7 @@ Y sus costes: mucha "magia" (metaclases, convenciones) que hay que entender para
 ## 10. Para experimentar
 
 ```bash
-docker compose exec api-django python manage.py shell        # importa los modelos automáticamente
+docker compose exec web python manage.py shell        # importa los modelos automáticamente
 ```
 
 ```python

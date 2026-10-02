@@ -82,7 +82,7 @@ Tras una excepción, dentro de `python -i`: `import pdb; pdb.pm()` abre el debug
 2. En VS Code: poner un punto rojo (breakpoint) en el margen, ir a *Run and Debug* y lanzar **"Attach to Docker"** (definido en `.vscode/launch.json`).
 3. El `pathMappings` traduce rutas: la carpeta del proyecto en el Mac es `/app` dentro del contenedor.
 
-Para los servidores (fase 1 y 2) es igual, cambiando el script por `fase1_sin_framework/servidor.py` o `manage.py runserver 0.0.0.0:8001 --noreload`.
+Para depurar la aplicación Django es igual, cambiando el script por `manage.py runserver 0.0.0.0:8000 --noreload` y añadiendo `-p 8000:8000` (antes, para el servicio `web` con `docker compose stop web`).
 
 ## Práctica
 

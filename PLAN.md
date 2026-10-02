@@ -1,5 +1,7 @@
 # Plan: centribal-admision — aprender Python y Django paso a paso
 
+> **Actualización**: la fase 1 (sin framework) se completó y luego se descartó. El proyecto Django de la fase 2 vive ahora en la raíz del repositorio, con la API y una interfaz web. El estado actual está en el [README](README.md).
+
 ## Contexto
 Reto de admisión: una API REST de **solicitudes de soporte** (tickets) con asunto, descripción, prioridad, estado, agente asignado, comentarios internos e historial de cambios. El objetivo doble es (1) aprender Python desde sus fundamentos y (2) entregar el proyecto, primero **sin framework** y luego con **Django + DRF**.
 

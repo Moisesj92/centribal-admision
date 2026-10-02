@@ -17,7 +17,7 @@ class Estado(models.TextChoices):
     CERRADO = "cerrado", "Cerrado"
 
 
-# Mismas reglas que en la fase 1: un ticket cerrado no se reabre.
+# Un ticket cerrado no se reabre.
 TRANSICIONES = {
     Estado.ABIERTO: {Estado.EN_PROGRESO, Estado.RESUELTO, Estado.CERRADO},
     Estado.EN_PROGRESO: {Estado.ABIERTO, Estado.RESUELTO, Estado.CERRADO},

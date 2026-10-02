@@ -2,10 +2,18 @@
 x-python: &python
   build: .
   image: centribal-admision
+  pull_policy: build     # la imagen se construye aquí, no se descarga
   volumes:
     - .:/app
 
 services:
+  # Aplicación Django → UI en http://localhost:8000/ui/, API en /tickets/, admin en /admin/
+  web:
+    <<: *python
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+
   # Terminal para ejercicios, tests y debug: docker compose run --rm --service-ports shell
   shell:
     <<: *python
@@ -13,21 +21,4 @@ services:
       - "5678:5678"   # debugpy
     stdin_open: true
     tty: true
-
-  # Fase 1: API con la librería estándar → http://localhost:8000/tickets/
-  api-stdlib:
-    <<: *python
-    working_dir: /app/fase1_sin_framework
-    command: python servidor.py
-    environment:
-      DB_PATH: /app/fase1_sin_framework/soporte.sqlite3
-    ports:
-      - "8000:8000"
-
-  # Fase 2: API con Django + DRF → http://localhost:8001/tickets/  (admin en /admin/)
-  api-django:
-    <<: *python
-    working_dir: /app/fase2_django
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
-    ports:
-      - "8001:8001"
+    profiles: ["tools"]   # no arranca con "docker compose up", solo con "run"
