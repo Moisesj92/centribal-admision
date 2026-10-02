@@ -1,11 +1,25 @@
+# Plantilla común: misma imagen y el proyecto montado en /app.
+x-python: &python
+  build: .
+  image: centribal-admision
+  volumes:
+    - .:/app
+
 services:
+  # Terminal para ejercicios, tests y debug: docker compose run --rm --service-ports shell
   shell:
-    build: .
-    volumes:
-      - .:/app
+    <<: *python
     ports:
-      - "8000:8000"
-      - "8001:8001"
-      - "5678:5678"
+      - "5678:5678"   # debugpy
     stdin_open: true
     tty: true
+
+  # Fase 1: API con la librería estándar → http://localhost:8000/tickets/
+  api-stdlib:
+    <<: *python
+    working_dir: /app/fase1_sin_framework
+    command: python servidor.py
+    environment:
+      DB_PATH: /app/fase1_sin_framework/soporte.sqlite3
+    ports:
+      - "8000:8000"
