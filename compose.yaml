@@ -1,0 +1,11 @@
+services:
+  shell:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "5678:5678"
+    stdin_open: true
+    tty: true
