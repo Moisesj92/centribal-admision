@@ -124,6 +124,11 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Interfaz HTML: a dónde mandar a quien no ha iniciado sesión, y a dónde tras entrar/salir.
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'ui:lista'
+LOGOUT_REDIRECT_URL = 'login'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

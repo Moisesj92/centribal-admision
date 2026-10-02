@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
 
@@ -49,21 +50,34 @@ class Ticket(models.Model):
     def __str__(self):
         return f"#{self.pk} {self.asunto}"
 
-    def puede_pasar_a(self, nuevo: str) -> bool:
-        return nuevo in TRANSICIONES[Estado(self.estado)]
+    # Las reglas viven en el modelo para que la API (serializers) y la UI (forms) usen las mismas.
+
+    def estados_siguientes(self) -> list[Estado]:
+        return [e for e in Estado if e in TRANSICIONES[Estado(self.estado)]]
+
+    def validar_estado(self, nuevo: str) -> None:
+        if nuevo == self.estado:
+            raise ValidationError(f"El ticket ya está en estado {nuevo}.")
+        if nuevo not in TRANSICIONES[Estado(self.estado)]:
+            raise ValidationError(f"No se puede pasar de {self.estado} a {nuevo}.")
+
+    def validar_asignacion(self, agente) -> None:
+        if self.estado == Estado.CERRADO:
+            raise ValidationError("No se puede reasignar un ticket cerrado.")
+        if agente == self.agente:
+            raise ValidationError("El ticket ya está asignado a ese agente.")
 
     @transaction.atomic
     def cambiar_estado(self, nuevo: str, autor) -> None:
-        """Cambia el estado y registra el historial en la misma transacción.
-
-        La validación (transición permitida) se hace antes, en el serializer.
-        """
+        """Valida, cambia el estado y registra el historial en la misma transacción."""
+        self.validar_estado(nuevo)
         anterior, self.estado = self.estado, nuevo
         self.save(update_fields=["estado", "actualizado"])
         self.historial.create(campo="estado", valor_anterior=anterior, valor_nuevo=nuevo, autor=autor)
 
     @transaction.atomic
     def asignar(self, agente, autor) -> None:
+        self.validar_asignacion(agente)
         anterior = self.agente.get_username() if self.agente else None
         self.agente = agente
         self.save(update_fields=["agente", "actualizado"])

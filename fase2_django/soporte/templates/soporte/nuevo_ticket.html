@@ -1,0 +1,16 @@
+{% extends "soporte/base.html" %}
+{% block titulo %}Nueva solicitud{% endblock %}
+{% block contenido %}
+<div class="panel" style="max-width: 640px; margin: 0 auto">
+  <h1>Nueva solicitud de soporte</h1>
+  <p class="suave">Cuéntanos qué pasa y un agente se pondrá con ello.</p>
+  <form method="post">
+    {% csrf_token %}
+    {% for campo in form %}
+      <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+      {{ campo.errors }}{{ campo }}
+    {% endfor %}
+    <p style="margin-top: 16px"><button>Enviar solicitud</button></p>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "soporte/base.html" %}
+{% block titulo %}Solicitud enviada{% endblock %}
+{% block contenido %}
+<div class="panel" style="max-width: 640px; margin: 0 auto">
+  <h1>Solicitud recibida</h1>
+  <p>Tu solicitud <strong>#{{ ticket.pk }} · {{ ticket.asunto }}</strong> se ha registrado con prioridad
+    <span class="etiqueta p-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>.</p>
+  <p><a href="{% url 'ui:nuevo' %}">Enviar otra solicitud</a></p>
+</div>
+{% endblock %}

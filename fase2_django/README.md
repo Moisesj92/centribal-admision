@@ -14,7 +14,24 @@ La misma API que la fase 1 (mismos endpoints, mismas reglas) con Django 5.2 LTS,
 | `soporte/urls.py` | `DefaultRouter`: genera las URLs del ViewSet |
 | `soporte/admin.py` | Panel de administración con comentarios e historial dentro del ticket |
 | `soporte/management/commands/crear_agentes.py` | Crea los agentes `ana` y `luis` y muestra sus tokens |
-| `soporte/tests/` | Tests con `APITestCase` |
+| `soporte/forms.py`, `views_ui.py`, `urls_ui.py`, `templates/` | Interfaz HTML con templates de Django (ver abajo) |
+| `soporte/tests/` | Tests de la API (`APITestCase`) y de la UI (`TestCase`) |
+
+## Dos interfaces, un mismo modelo
+
+| | UI (`/ui/`) | API (`/tickets/`) |
+|---|---|---|
+| Para | Personas en el navegador | Programas: frontend JS, app móvil, integraciones |
+| Devuelve | HTML generado con templates | JSON |
+| Valida con | `forms.py` | `serializers.py` |
+| Vistas | `views_ui.py` (funciones) | `views.py` (ViewSet de DRF) |
+| Login | Sesión: `/cuentas/login/` | Token o sesión |
+
+Las reglas del negocio (`validar_estado`, `validar_asignacion`) viven en el **modelo**, y los forms y los serializers solo las llaman. Por eso un cambio hecho en la UI aparece en la API y al revés, y una regla nueva se escribe una sola vez.
+
+- `/ui/nuevo/`: formulario público para que el cliente abra una solicitud.
+- `/ui/`: lista con filtros (estado, prioridad, asignados a mí, sin asignar). Solo agentes.
+- `/ui/tickets/<id>/`: detalle con cambio de estado (solo ofrece las transiciones válidas), asignación, comentarios e historial.
 
 ## Agentes y autenticación
 

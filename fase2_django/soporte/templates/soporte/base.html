@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Soporte{% endblock %} · Centribal</title>
+  <style>
+    :root {
+      --fondo: #f6f7f9; --panel: #fff; --texto: #1d2330; --suave: #667085; --borde: #e3e6ec;
+      --acento: #3b5bdb; --acento-texto: #fff; --ok: #e6f6ec; --ok-texto: #1f7a3d; --error: #c92a2a;
+      --baja: #e9ecef; --media: #e7f0ff; --alta: #fff1e0; --critica: #ffe3e3;
+      --baja-t: #495057; --media-t: #1c4fbf; --alta-t: #b35400; --critica-t: #c92a2a;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fondo: #12151c; --panel: #1b1f29; --texto: #e6e8ee; --suave: #98a1b3; --borde: #2c3240;
+        --acento: #7b93ff; --acento-texto: #10131a; --ok: #183a26; --ok-texto: #7fdc9e; --error: #ff8787;
+        --baja: #2a2f3a; --media: #1d2b4d; --alta: #3d2a14; --critica: #45201f;
+        --baja-t: #c5cad3; --media-t: #9db5ff; --alta-t: #ffb870; --critica-t: #ff9b9b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--fondo); color: var(--texto); }
+    a { color: var(--acento); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header { background: var(--panel); border-bottom: 1px solid var(--borde); }
+    .barra { max-width: 1040px; margin: 0 auto; padding: 12px 16px; display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    .marca { font-weight: 700; color: var(--texto); }
+    .barra nav { display: flex; gap: 16px; flex: 1; }
+    .usuario { display: flex; gap: 10px; align-items: center; color: var(--suave); }
+    main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 24px; margin: 0 0 16px; }
+    h2 { font-size: 16px; margin: 0 0 12px; }
+    .panel { background: var(--panel); border: 1px solid var(--borde); border-radius: 10px; padding: 16px; }
+    .suave { color: var(--suave); }
+    .pequeño { font-size: 13px; }
+    button, .boton { font: inherit; border: 0; border-radius: 6px; padding: 7px 14px; background: var(--acento); color: var(--acento-texto); cursor: pointer; display: inline-block; }
+    button.enlace { background: none; color: var(--acento); padding: 0; }
+    input, select, textarea { font: inherit; color: inherit; background: var(--fondo); border: 1px solid var(--borde); border-radius: 6px; padding: 7px 9px; width: 100%; }
+    label { display: block; font-weight: 600; margin: 12px 0 4px; }
+    .errorlist { color: var(--error); list-style: none; padding: 0; margin: 4px 0; font-size: 13px; }
+    .mensaje { background: var(--ok); color: var(--ok-texto); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+    .etiqueta { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .p-baja { background: var(--baja); color: var(--baja-t); } .p-media { background: var(--media); color: var(--media-t); }
+    .p-alta { background: var(--alta); color: var(--alta-t); } .p-critica { background: var(--critica); color: var(--critica-t); }
+    .e-abierto { background: var(--media); color: var(--media-t); } .e-en_progreso { background: var(--alta); color: var(--alta-t); }
+    .e-resuelto { background: var(--ok); color: var(--ok-texto); } .e-cerrado { background: var(--baja); color: var(--baja-t); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borde); vertical-align: top; }
+    th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); font-weight: 600; }
+    tr:last-child td { border-bottom: 0; }
+    .tabla { overflow-x: auto; padding: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="barra">
+      <a class="marca" href="{% url 'ui:lista' %}">Soporte</a>
+      <nav>
+        {% if user.is_staff %}<a href="{% url 'ui:lista' %}">Tickets</a>{% endif %}
+        <a href="{% url 'ui:nuevo' %}">Nueva solicitud</a>
+        <a href="/tickets/">API</a>
+        <a href="/admin/">Admin</a>
+      </nav>
+      <div class="usuario">
+        {% if user.is_authenticated %}
+          {{ user.username }}
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="enlace">Salir</button></form>
+        {% else %}
+          <a href="{% url 'login' %}">Entrar</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  <main>
+    {% for mensaje in messages %}<div class="mensaje">{{ mensaje }}</div>{% endfor %}
+    {% block contenido %}{% endblock %}
+  </main>
+</body>
+</html>

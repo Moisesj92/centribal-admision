@@ -1,9 +1,18 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from .models import AGENTES, Comentario, Estado, Historial, Ticket
 
 Usuario = get_user_model()
+
+
+def aplicar_regla(regla, *args):
+    """Ejecuta una validación del modelo y convierte su error al formato de DRF."""
+    try:
+        regla(*args)
+    except ValidationError as error:
+        raise serializers.ValidationError(error.messages) from None
 
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -25,11 +34,7 @@ class EstadoSerializer(serializers.Serializer):
     estado = serializers.ChoiceField(choices=Estado.choices)
 
     def validate_estado(self, nuevo):
-        ticket = self.instance
-        if nuevo == ticket.estado:
-            raise serializers.ValidationError(f"El ticket ya está en estado {nuevo}.")
-        if not ticket.puede_pasar_a(nuevo):
-            raise serializers.ValidationError(f"No se puede pasar de {ticket.estado} a {nuevo}.")
+        aplicar_regla(self.instance.validar_estado, nuevo)
         return nuevo
 
     def update(self, ticket, datos):
@@ -43,11 +48,7 @@ class AsignarSerializer(serializers.Serializer):
     )
 
     def validate(self, datos):
-        ticket = self.instance
-        if ticket.estado == Estado.CERRADO:
-            raise serializers.ValidationError("No se puede reasignar un ticket cerrado.")
-        if datos["agente"] == ticket.agente:
-            raise serializers.ValidationError("El ticket ya está asignado a ese agente.")
+        aplicar_regla(self.instance.validar_asignacion, datos["agente"])
         return datos
 
     def update(self, ticket, datos):

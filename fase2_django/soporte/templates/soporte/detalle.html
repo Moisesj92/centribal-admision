@@ -1,0 +1,89 @@
+{% extends "soporte/base.html" %}
+{% block titulo %}#{{ ticket.pk }} {{ ticket.asunto }}{% endblock %}
+{% block contenido %}
+<p class="pequeño"><a href="{% url 'ui:lista' %}">← Tickets</a></p>
+<h1>#{{ ticket.pk }} · {{ ticket.asunto }}</h1>
+<p>
+  <span class="etiqueta p-{{ ticket.prioridad }}">{{ ticket.get_prioridad_display }}</span>
+  <span class="etiqueta e-{{ ticket.estado }}">{{ ticket.get_estado_display }}</span>
+  <span class="suave pequeño">· creado {{ ticket.creado|date:"j M Y, H:i" }} · agente: {{ ticket.agente|default:"sin asignar" }}</span>
+</p>
+
+<div class="columnas">
+  <div class="principal">
+    <section class="panel">
+      <h2>Descripción</h2>
+      <p style="white-space: pre-wrap; margin: 0">{{ ticket.descripcion }}</p>
+    </section>
+
+    <section class="panel">
+      <h2>Comentarios internos</h2>
+      {% for comentario in comentarios %}
+        <div class="comentario">
+          <div class="pequeño"><strong>{{ comentario.autor }}</strong> <span class="suave">· {{ comentario.fecha|date:"j M Y, H:i" }}</span></div>
+          <div style="white-space: pre-wrap">{{ comentario.texto }}</div>
+        </div>
+      {% empty %}
+        <p class="suave">Todavía no hay comentarios.</p>
+      {% endfor %}
+      <form method="post" action="{% url 'ui:comentar' ticket.pk %}">
+        {% csrf_token %}
+        {{ comentario_form.texto.errors }}{{ comentario_form.texto }}
+        <p><button>Comentar</button></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Historial</h2>
+      {% for cambio in historial %}
+        <div class="pequeño cambio">
+          <span class="suave">{{ cambio.fecha|date:"j M Y, H:i" }}</span> ·
+          <strong>{{ cambio.autor }}</strong> cambió <em>{{ cambio.campo }}</em>:
+          {{ cambio.valor_anterior|default:"—" }} → {{ cambio.valor_nuevo|default:"—" }}
+        </div>
+      {% empty %}
+        <p class="suave">Sin cambios todavía.</p>
+      {% endfor %}
+    </section>
+  </div>
+
+  <aside>
+    <section class="panel">
+      <h2>Estado</h2>
+      {% if estado_form.fields.estado.choices %}
+        <form method="post" action="{% url 'ui:estado' ticket.pk %}">
+          {% csrf_token %}
+          {{ estado_form.non_field_errors }}{{ estado_form.estado.errors }}
+          {{ estado_form.estado }}
+          <p><button>Cambiar estado</button></p>
+        </form>
+      {% else %}
+        <p class="suave">Ticket cerrado: ya no admite cambios.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h2>Agente asignado</h2>
+      {% if ticket.estado != "cerrado" %}
+        <form method="post" action="{% url 'ui:asignar' ticket.pk %}">
+          {% csrf_token %}
+          {{ asignar_form.non_field_errors }}{{ asignar_form.agente.errors }}
+          {{ asignar_form.agente }}
+          <p><button>Asignar</button></p>
+        </form>
+      {% else %}
+        <p>{{ ticket.agente|default:"Sin asignar" }}</p>
+      {% endif %}
+    </section>
+  </aside>
+</div>
+
+<style>
+  .columnas { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+  .principal, aside { display: grid; gap: 16px; }
+  .comentario { border-left: 3px solid var(--borde); padding: 2px 0 2px 12px; margin-bottom: 12px; }
+  .cambio { padding: 6px 0; border-bottom: 1px solid var(--borde); }
+  .cambio:last-child { border-bottom: 0; }
+  @media (max-width: 760px) { .columnas { grid-template-columns: 1fr; } aside { order: -1; } }
+</style>
+{% endblock %}
