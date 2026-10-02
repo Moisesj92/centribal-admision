@@ -23,3 +23,11 @@ services:
       DB_PATH: /app/fase1_sin_framework/soporte.sqlite3
     ports:
       - "8000:8000"
+
+  # Fase 2: API con Django + DRF → http://localhost:8001/tickets/  (admin en /admin/)
+  api-django:
+    <<: *python
+    working_dir: /app/fase2_django
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
+    ports:
+      - "8001:8001"
