@@ -2,10 +2,12 @@
 
 from unittest import mock
 
+from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from soporte.models import ConflictoConcurrente, Estado, Ticket
+from soporte.models import MAX_COMENTARIO, MAX_DESCRIPCION, ConflictoConcurrente, Estado, Ticket
 from soporte.tests.utils import crear_agente
 
 
@@ -80,3 +82,43 @@ class ConflictoEnInterfacesTest(TestCase):
             respuesta = self.client.post(f"/tickets/{self.ticket.pk}/estado/", {"estado": "cerrado"}, follow=True)
         self.assertContains(respuesta, "cambió mientras tanto")
         self.assertContains(respuesta, 'class="mensaje error"')
+
+
+class IntegridadTest(TestCase):
+    """Restricciones que se cumplen aunque se salten los forms y serializers."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.ana = crear_agente("ana")
+
+    def test_la_base_de_datos_rechaza_datos_imposibles(self):
+        casos = [
+            {"asunto": "a", "descripcion": "b", "estado": "pausado"},
+            {"asunto": "a", "descripcion": "b", "prioridad": "urgentisima"},
+            {"asunto": "", "descripcion": "b"},
+            {"asunto": "a", "descripcion": ""},
+        ]
+        for datos in casos:
+            with self.subTest(datos=datos), self.assertRaises(IntegrityError), transaction.atomic():
+                Ticket.objects.create(**datos)  # save() no valida: la que frena es la BD
+
+    def test_textos_demasiado_largos_dan_400(self):
+        cliente = APIClient()
+        respuesta = cliente.post(
+            "/api/tickets/", {"asunto": "a", "descripcion": "x" * (MAX_DESCRIPCION + 1)}, format="json"
+        )
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("descripcion", respuesta.data)
+
+        ticket = Ticket.objects.create(asunto="a", descripcion="b")
+        cliente.force_authenticate(self.ana)
+        respuesta = cliente.post(
+            f"/api/tickets/{ticket.pk}/comentarios/", {"texto": "x" * (MAX_COMENTARIO + 1)}, format="json"
+        )
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_no_se_borra_un_agente_con_tickets(self):
+        ticket = Ticket.objects.create(asunto="a", descripcion="b")
+        ticket.asignar(self.ana, self.ana)
+        with self.assertRaises(ProtectedError):
+            self.ana.delete()  # se desactiva (is_active=False), no se borra

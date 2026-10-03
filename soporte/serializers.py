@@ -23,11 +23,8 @@ class TicketSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ["id", "asunto", "descripcion", "prioridad", "estado", "agente", "creado", "actualizado"]
         read_only_fields = ["estado", "creado", "actualizado"]
-
-    def validate_asunto(self, valor):
-        if not valor.strip():
-            raise serializers.ValidationError("El asunto no puede estar vacío.")
-        return valor.strip()
+        # Los espacios sobrantes los quita trim_whitespace (por defecto en CharField de DRF),
+        # así "   " llega vacío y lo rechaza el blank=False del modelo: no hace falta validate_asunto.
 
 
 class EstadoSerializer(serializers.Serializer):
@@ -61,8 +58,8 @@ class ComentarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comentario
-        fields = ["id", "autor", "texto", "es_interno", "fecha"]
-        read_only_fields = ["es_interno", "fecha"]
+        fields = ["id", "autor", "texto", "fecha"]
+        read_only_fields = ["fecha"]
 
 
 class HistorialSerializer(serializers.ModelSerializer):

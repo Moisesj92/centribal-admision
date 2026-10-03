@@ -95,8 +95,7 @@ class TicketApiTest(APITestCase):
         respuesta = self.client.post(url + "/comentarios/", {"texto": "Revisando"}, format="json")
         self.assertEqual(respuesta.status_code, 201)
         comentarios = self.client.get(url + "/comentarios/").data
-        self.assertEqual([(c["autor"], c["texto"], c["es_interno"]) for c in comentarios],
-                         [("luis", "Revisando", True)])
+        self.assertEqual([(c["autor"], c["texto"]) for c in comentarios], [("luis", "Revisando")])
 
         historial = self.client.get(url + "/historial/").data
         self.assertEqual([(h["campo"], h["valor_anterior"], h["valor_nuevo"], h["autor"]) for h in historial],

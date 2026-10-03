@@ -14,12 +14,8 @@ class TicketForm(forms.ModelForm):
         model = Ticket
         fields = ["asunto", "descripcion", "prioridad"]
         widgets = {"descripcion": forms.Textarea(attrs={"rows": 5})}
-
-    def clean_asunto(self):
-        asunto = self.cleaned_data["asunto"].strip()
-        if not asunto:
-            raise forms.ValidationError("El asunto no puede estar vacío.")
-        return asunto
+        # Sin clean_asunto: el CharField del form ya quita espacios (strip=True) y "   " queda vacío,
+        # lo que rechaza el blank=False del modelo. Una sola regla, sin duplicar la del serializer.
 
 
 class EstadoForm(forms.Form):

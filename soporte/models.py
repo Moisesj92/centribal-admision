@@ -34,16 +34,22 @@ TRANSICIONES = {
 
 
 
+MAX_DESCRIPCION = 5000
+MAX_COMENTARIO = 2000
+
+
 class Ticket(models.Model):
     asunto = models.CharField(max_length=200)
-    descripcion = models.TextField()
+    descripcion = models.TextField(max_length=MAX_DESCRIPCION)
     prioridad = models.CharField(max_length=10, choices=Prioridad, default=Prioridad.MEDIA)
     estado = models.CharField(max_length=12, choices=Estado, default=Estado.ABIERTO)
     agente = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
+        # PROTECT: un agente con tickets no se borra (se desactiva), así no se pierde quién los llevaba
+        # ni se cambia la asignación sin dejar historial, como haría SET_NULL.
+        on_delete=models.PROTECT,
         limit_choices_to={"is_active": True, "groups__name": GRUPO_AGENTES},
         related_name="tickets_asignados",
     )
@@ -52,6 +58,14 @@ class Ticket(models.Model):
 
     class Meta:
         ordering = ["id"]
+        # choices y blank solo se validan en forms/serializers (save() no valida). Estas
+        # restricciones hacen que la base de datos rechace datos imposibles venga de donde venga.
+        constraints = [
+            models.CheckConstraint(condition=models.Q(estado__in=Estado.values), name="ticket_estado_valido"),
+            models.CheckConstraint(condition=models.Q(prioridad__in=Prioridad.values), name="ticket_prioridad_valida"),
+            models.CheckConstraint(condition=~models.Q(asunto=""), name="ticket_asunto_no_vacio"),
+            models.CheckConstraint(condition=~models.Q(descripcion=""), name="ticket_descripcion_no_vacia"),
+        ]
 
     def __str__(self):
         return f"#{self.pk} {self.asunto}"
@@ -113,12 +127,12 @@ class Ticket(models.Model):
 class Comentario(models.Model):
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="comentarios")
     autor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    texto = models.TextField()
-    es_interno = models.BooleanField(default=True)
+    texto = models.TextField(max_length=MAX_COMENTARIO)  # todos los comentarios son internos (solo agentes)
     fecha = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["id"]
+        constraints = [models.CheckConstraint(condition=~models.Q(texto=""), name="comentario_texto_no_vacio")]
 
     def __str__(self):
         return f"Comentario de {self.autor} en {self.ticket}"
