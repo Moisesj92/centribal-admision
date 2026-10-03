@@ -51,15 +51,15 @@ Requisitos: **Docker** con **Docker Compose v2**. Nada más.
 
 ```bash
 docker compose up -d                                         # construye, migra y arranca en :8000
-docker compose exec web python manage.py crear_agentes       # crea los agentes ana y luis + sus tokens
+docker compose exec web python manage.py crear_agentes       # crea ana, luis y sara + sus tokens
 ```
 
 | URL | Qué es |
 |---|---|
 | http://localhost:8000/nuevo/ | Formulario público para crear una solicitud |
-| http://localhost:8000/ | Interfaz de agentes (usuario `ana` o `luis`, contraseña `agente-dev-123`) |
+| http://localhost:8000/ | Interfaz de agentes (usuario `ana`, `luis` o `sara`, contraseña `agente-dev-123`) |
 | http://localhost:8000/api/ | API navegable de DRF (los tickets en `/api/tickets/`) |
-| http://localhost:8000/admin/ | Panel de administración (requiere superusuario, ver [§9](#9-cómo-está-organizado-el-código-django)) |
+| http://localhost:8000/admin/ | Panel de administración (usuario `sara`, misma contraseña) |
 
 Para parar: `docker compose down`.
 
@@ -375,7 +375,7 @@ Un **agente** es un usuario activo del grupo **"Agentes"** (lo crea una migraci�
 |---|---|
 | API | `Authorization: Token <clave>`, o la sesión del navegador (API navegable) |
 | Interfaz web | Login con usuario y contraseña en `/cuentas/login/` |
-| Admin | Login en `/admin/` con un superusuario (`createsuperuser`); los agentes no entran |
+| Admin | Login en `/admin/` con un usuario staff (`sara`) o un superusuario (`createsuperuser`) |
 
 ```bash
 docker compose exec web python manage.py crear_agentes                       # imprime los tokens
@@ -383,6 +383,15 @@ curl -X POST http://localhost:8000/api/token/ -d 'username=ana&password=agente-d
 ```
 
 Crear un ticket es lo único que no exige autenticación.
+
+### Usuarios de prueba (`crear_agentes`)
+
+| Usuario | Agente | Staff | Qué puede hacer |
+|---|---|---|---|
+| `ana`, `luis` | ✅ | — | Web y API de agentes. No entran al admin |
+| `sara` | ✅ | ✅ | Lo mismo, y además el admin como **supervisora**: ver tickets, comentarios e historial y editar asunto, descripción y prioridad. No puede crear tickets desde el admin ni gestionar usuarios |
+
+Contraseña de los tres: `agente-dev-123`. `is_staff` solo deja *entrar* al admin; lo que se ve dentro depende de los permisos que el comando asigna a `sara` (`view_ticket`, `change_ticket`, `view_comentario`, `view_historial`), sin hacerla superusuaria.
 
 ---
 
@@ -519,9 +528,9 @@ En desarrollo se cambian con un archivo `.env` (ver [`.env.example`](.env.exampl
 | `401` en la API | Falta la cabecera `Authorization: Token ...` |
 | `403` en la API | El usuario existe pero no es agente (no está en el grupo "Agentes") |
 | `409` en la API | Otra petición cambió el ticket a la vez: vuelve a pedirlo y reintenta |
-| La web manda al login | Entra con un agente (`ana` / `luis`) |
+| La web manda al login | Entra con un agente (`ana`, `luis` o `sara`) |
 | `no such table` | Faltan migraciones: `docker compose exec web python manage.py migrate` (el servicio `web` las aplica al arrancar) |
-| `/admin/` no deja entrar a `ana` / `luis` | Es correcto: los agentes no son `is_staff`. Crea un superusuario con `createsuperuser` |
+| `/admin/` no deja entrar a `ana` / `luis` | Es correcto: no son `is_staff`. Entra con `sara` o con un superusuario (`createsuperuser`) |
 | Empezar con datos limpios | `docker compose down`, borra `db.sqlite3` y vuelve a `docker compose up -d` |
 | Cambié `requirements.txt` y no se nota | `docker compose build` (o trabaja con `docker compose watch`) |
 | `docker compose ps` dice `unhealthy` | `docker compose logs web`: la app no responde en `/salud/` (error de arranque, migración fallida…) |
