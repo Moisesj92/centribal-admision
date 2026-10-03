@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
-from .models import AGENTES, Comentario, Estado, Historial, Ticket
+from .models import Comentario, Estado, Historial, Ticket
 
 Usuario = get_user_model()
 
@@ -44,7 +44,7 @@ class EstadoSerializer(serializers.Serializer):
 
 class AsignarSerializer(serializers.Serializer):
     agente = serializers.SlugRelatedField(
-        slug_field="username", queryset=Usuario.objects.filter(**AGENTES), allow_null=True
+        slug_field="username", queryset=Usuario.objects.agentes(), allow_null=True
     )
 
     def validate(self, datos):

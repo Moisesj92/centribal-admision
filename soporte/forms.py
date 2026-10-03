@@ -6,7 +6,7 @@ Las reglas (transiciones, reasignación) no se repiten: se llama a las validacio
 from django import forms
 from django.contrib.auth import get_user_model
 
-from .models import AGENTES, Comentario, Estado, Ticket
+from .models import Comentario, Estado, Ticket
 
 
 class TicketForm(forms.ModelForm):
@@ -39,7 +39,7 @@ class EstadoForm(forms.Form):
 
 class AsignarForm(forms.Form):
     agente = forms.ModelChoiceField(
-        queryset=get_user_model().objects.filter(**AGENTES).order_by("username"),
+        queryset=get_user_model().objects.agentes().order_by("username"),
         required=False,
         empty_label="— sin asignar —",
     )

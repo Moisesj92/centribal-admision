@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_filters',
     # propias
+    'cuentas',
     'soporte',
 ]
 
@@ -124,7 +125,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # destino de collectstatic (imagen prod)
+# Destino de collectstatic, solo fuera de debug (imagen prod); en desarrollo los sirve Django.
+STATIC_ROOT = None if DEBUG else BASE_DIR / 'staticfiles'
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
@@ -135,19 +137,22 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'ui:lista'
 LOGOUT_REDIRECT_URL = 'login'
 
+# Modelo de usuario propio (cuentas.Usuario)
+AUTH_USER_MODEL = 'cuentas.Usuario'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Django REST Framework
-# Por defecto todo exige ser agente (usuario con is_staff); la creación de tickets se abre en la vista.
+# Por defecto todo exige ser agente (grupo "Agentes"); la creación de tickets se abre en la vista.
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         # Token primero: así un anónimo recibe 401 (con cabecera WWW-Authenticate) en vez de 403.
         'rest_framework.authentication.TokenAuthentication',    # curl: Authorization: Token <clave>
         'rest_framework.authentication.SessionAuthentication',  # navegador / API navegable
     ],
-    'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAdminUser'],
+    'DEFAULT_PERMISSION_CLASSES': ['soporte.permisos.EsAgente'],
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }

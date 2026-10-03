@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from soporte.tests.utils import crear_agente
 from soporte.models import Estado, Ticket
 
 Usuario = get_user_model()
@@ -10,8 +11,8 @@ Usuario = get_user_model()
 class UiTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.ana = Usuario.objects.create_user("ana", password="x", is_staff=True)
-        cls.luis = Usuario.objects.create_user("luis", password="x", is_staff=True)
+        cls.ana = crear_agente("ana")
+        cls.luis = crear_agente("luis")
         cls.cliente = Usuario.objects.create_user("cliente", password="x")
         cls.ticket = Ticket.objects.create(asunto="VPN", descripcion="No conecta", prioridad="alta")
 

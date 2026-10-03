@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from soporte.tests.utils import crear_agente
 from soporte.models import Estado, Ticket
 
 Usuario = get_user_model()
@@ -10,9 +11,10 @@ Usuario = get_user_model()
 class TicketApiTest(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.ana = Usuario.objects.create_user("ana", password="x", is_staff=True)
-        cls.luis = Usuario.objects.create_user("luis", password="x", is_staff=True)
+        cls.ana = crear_agente("ana")
+        cls.luis = crear_agente("luis")
         cls.cliente = Usuario.objects.create_user("cliente", password="x")
+        cls.admin_no_agente = Usuario.objects.create_user("admin", password="x", is_staff=True)
 
     def setUp(self):
         self.client.force_authenticate(self.ana)
@@ -52,7 +54,8 @@ class TicketApiTest(APITestCase):
 
     def test_solo_agentes_ven_tickets(self):
         ticket = self.crear()
-        for usuario, esperado in ((None, 401), (self.cliente, 403), (self.ana, 200)):
+        casos = ((None, 401), (self.cliente, 403), (self.admin_no_agente, 403), (self.ana, 200))
+        for usuario, esperado in casos:
             with self.subTest(usuario=usuario):
                 self.client.force_authenticate(usuario)
                 self.assertEqual(self.client.get("/api/tickets/").status_code, esperado)

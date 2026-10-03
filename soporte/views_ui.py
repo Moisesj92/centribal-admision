@@ -11,8 +11,8 @@ from django.views.decorators.http import require_POST
 from .forms import AsignarForm, ComentarioForm, EstadoForm, TicketForm
 from .models import Estado, Prioridad, Ticket
 
-# Igual que IsAdminUser en la API: solo usuarios con is_staff. Si no, a la página de login.
-solo_agentes = user_passes_test(lambda usuario: usuario.is_active and usuario.is_staff)
+# Igual que EsAgente en la API: solo usuarios del grupo "Agentes". Si no, a la página de login.
+solo_agentes = user_passes_test(lambda usuario: usuario.is_authenticated and usuario.es_agente)
 
 
 def nuevo_ticket(request):

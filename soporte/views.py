@@ -21,7 +21,7 @@ class TicketViewSet(
     """Tickets de soporte.
 
     - `POST /api/tickets/` es público (lo usa el cliente).
-    - El resto exige un agente autenticado (permiso por defecto IsAdminUser = is_staff).
+    - El resto exige un agente autenticado (permiso por defecto EsAgente).
     """
 
     queryset = Ticket.objects.select_related("agente")

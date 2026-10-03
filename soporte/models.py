@@ -2,6 +2,8 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 
+from cuentas.models import GRUPO_AGENTES
+
 
 class Prioridad(models.TextChoices):
     BAJA = "baja", "Baja"
@@ -25,7 +27,6 @@ TRANSICIONES = {
     Estado.CERRADO: set(),
 }
 
-AGENTES = {"is_staff": True}  # en Django un "agente" es un usuario con is_staff
 
 
 class Ticket(models.Model):
@@ -38,7 +39,7 @@ class Ticket(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        limit_choices_to=AGENTES,
+        limit_choices_to={"is_active": True, "groups__name": GRUPO_AGENTES},
         related_name="tickets_asignados",
     )
     creado = models.DateTimeField(auto_now_add=True)
