@@ -121,7 +121,7 @@ docker compose logs -f web                              # logs
 
 La [CI](.github/workflows/ci.yml) comprueba en cada push el lint, el formato, que no falten migraciones y los tests.
 
-Todos los comandos de Docker, la imagen de producción y la depuración con VS Code: [docs/docker.md](docs/docker.md).
+Todos los comandos de Docker y la depuración con VS Code: [docs/docker.md](docs/docker.md).
 
 ## Decisiones técnicas
 
@@ -131,16 +131,16 @@ Todos los comandos de Docker, la imagen de producción y la depuración con VS C
 - **Restricciones en la base de datos** (`CheckConstraint`), porque `save()` no valida.
 - **Auditoría inalterable**: comentarios e historial de solo lectura en el admin; los tickets no se borran.
 - **Listados paginados** en la web y en la API.
-- **Docker multi-stage**: imagen de desarrollo con recarga en vivo y otra de producción con gunicorn.
+- **Docker para desarrollo**: un solo comando lo deja todo listo, con recarga en vivo al guardar.
 
-Es un **proyecto de demostración y no va a producción**. La [revisión de código](docs/07-revision-y-plan.md) detalla qué se corrigió y qué se descartó a propósito por ser propio de un despliegue real (HTTPS, límite de peticiones, PostgreSQL…). Por eso la contraseña de prueba está en el código.
+Es un **proyecto de demostración y no va a producción**: la configuración (`config/settings.py`) es solo de desarrollo y no hay nada de despliegue. La [revisión de código](docs/07-revision-y-plan.md) detalla qué se corrigió y qué se descartó a propósito por ser propio de un despliegue real (HTTPS, límite de peticiones, PostgreSQL…). Por eso la contraseña de prueba está en el código.
 
 ## Documentación
 
 | Documento | Contenido |
 |---|---|
 | [docs/api.md](docs/api.md) | Referencia de la API: endpoints, ejemplos con curl, errores |
-| [docs/docker.md](docs/docker.md) | Imagen, servicios, variables de entorno, comandos y depuración |
+| [docs/docker.md](docs/docker.md) | Imagen, servicios, comandos y depuración |
 | [docs/07-revision-y-plan.md](docs/07-revision-y-plan.md) | Revisión de código: hallazgos, qué se corrigió y qué no |
 | [docs/06-django-por-dentro.md](docs/06-django-por-dentro.md) | Cómo funciona Django por dentro, con el código de este proyecto |
 | [docs/01](docs/01-historia.md) a [05](docs/05-debug.md) + [ejercicios/](ejercicios/) | Ruta de aprendizaje de Python: historia, bytecode, tipado, control de flujo, debug |

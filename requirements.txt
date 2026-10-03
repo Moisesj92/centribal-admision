@@ -1,6 +1,8 @@
-# Dependencias de ejecución (van a la imagen de producción).
-Django>=5.2,<5.3          # 5.2 LTS: soporte de seguridad hasta abril de 2028
+Django>=5.2,<5.3          # 5.2 LTS
 djangorestframework>=3.18,<4
 django-filter>=26.1,<27
-gunicorn>=23,<24          # servidor WSGI de producción
-whitenoise>=6.9,<7        # sirve los archivos estáticos sin nginx
+
+# Herramientas de desarrollo
+debugpy>=1.8,<2           # depurar con VS Code dentro del contenedor
+mypy>=2.4,<3
+ruff>=0.13,<1             # linter y formateador

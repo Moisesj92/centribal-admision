@@ -3,7 +3,5 @@ __pycache__/
 *.sqlite3
 .venv/
 .mypy_cache/
-staticfiles/
-.env
-.DS_Store
 .ruff_cache/
+.DS_Store

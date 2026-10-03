@@ -1,15 +1,10 @@
-# Lo que NO se envía a Docker al construir (imagen más pequeña y sin secretos).
+# Lo que NO se envía a Docker al construir la imagen (el código llega por volumen).
 .git
-.gitignore
 .vscode
-.env
 .venv/
 __pycache__/
 *.pyc
 .mypy_cache/
-*.sqlite3
-staticfiles/
-.DS_Store
-Dockerfile
-compose.yaml
 .ruff_cache/
+*.sqlite3
+.DS_Store

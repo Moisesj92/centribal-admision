@@ -15,10 +15,10 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-          cache-dependency-path: requirements*.txt
+          cache-dependency-path: requirements.txt
 
       - name: Instalar dependencias
-        run: pip install -r requirements-dev.txt
+        run: pip install -r requirements.txt
 
       - name: Lint (ruff check)
         run: ruff check .
@@ -36,7 +36,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Construir las imágenes dev y prod
-        run: |
-          docker build --target dev -t centribal-admision:dev .
-          docker build --target prod -t centribal-admision:prod .
+      - name: Construir la imagen
+        run: docker build -t centribal-admision .
