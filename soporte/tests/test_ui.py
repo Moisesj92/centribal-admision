@@ -81,3 +81,11 @@ class UiTest(TestCase):
 
     def test_acciones_solo_por_post(self):
         self.assertEqual(self.client.get(self.url("estado")).status_code, 405)
+
+    def test_paginacion_conserva_filtros(self):
+        Ticket.objects.bulk_create(Ticket(asunto=f"t{i}", descripcion="x", prioridad="baja") for i in range(25))
+        respuesta = self.client.get(reverse("ui:lista"), {"prioridad": "baja"})
+        self.assertEqual(len(respuesta.context["pagina"].object_list), 20)
+        self.assertContains(respuesta, "?prioridad=baja&amp;pagina=2")
+        segunda = self.client.get(reverse("ui:lista"), {"prioridad": "baja", "pagina": 2})
+        self.assertEqual(len(segunda.context["pagina"].object_list), 5)

@@ -49,9 +49,18 @@
   </table>
 </div>
 
+{% if pagina.paginator.num_pages > 1 %}
+<nav class="paginas pequeño" aria-label="Paginación">
+  {% if pagina.has_previous %}<a href="{% querystring pagina=pagina.previous_page_number %}">← Anterior</a>{% endif %}
+  <span class="suave">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} · {{ pagina.paginator.count }} tickets</span>
+  {% if pagina.has_next %}<a href="{% querystring pagina=pagina.next_page_number %}">Siguiente →</a>{% endif %}
+</nav>
+{% endif %}
+
 <style>
   .filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 16px; align-items: end; }
   .filtros label { margin-top: 0; }
   .acciones { display: flex; gap: 12px; align-items: center; padding-top: 8px; }
+  .paginas { display: flex; gap: 16px; justify-content: center; align-items: center; margin-top: 16px; }
 </style>
 {% endblock %}

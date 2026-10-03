@@ -5,6 +5,7 @@ Comparar con views.py (DRF), que devuelve JSON con la misma lógica de fondo.
 
 from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
+from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -36,8 +37,10 @@ def lista(request):
         tickets = tickets.filter(agente=request.user)
     elif filtros["agente"] == "nadie":
         tickets = tickets.filter(agente__isnull=True)
+    pagina = Paginator(tickets, 20).get_page(request.GET.get("pagina"))  # número inválido → página válida
     contexto = {
-        "tickets": tickets,
+        "tickets": pagina,
+        "pagina": pagina,
         "filtros": filtros,
         "estados": Estado.choices,
         "prioridades": Prioridad.choices,

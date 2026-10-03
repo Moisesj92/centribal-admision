@@ -72,10 +72,10 @@ class TicketApiTest(APITestCase):
     def test_filtros(self):
         self.crear(prioridad="alta")
         self.crear(prioridad="baja")
-        self.assertEqual(len(self.client.get("/api/tickets/").data), 2)
-        alta = self.client.get("/api/tickets/", {"prioridad": "alta"}).data
+        self.assertEqual(self.client.get("/api/tickets/").data["count"], 2)
+        alta = self.client.get("/api/tickets/", {"prioridad": "alta"}).data["results"]
         self.assertEqual([t["prioridad"] for t in alta], ["alta"])
-        self.assertEqual(self.client.get("/api/tickets/", {"estado": "cerrado"}).data, [])
+        self.assertEqual(self.client.get("/api/tickets/", {"estado": "cerrado"}).data["results"], [])
 
     def test_detalle_inexistente(self):
         self.assertEqual(self.client.get("/api/tickets/999/").status_code, 404)
@@ -94,10 +94,10 @@ class TicketApiTest(APITestCase):
 
         respuesta = self.client.post(url + "/comentarios/", {"texto": "Revisando"}, format="json")
         self.assertEqual(respuesta.status_code, 201)
-        comentarios = self.client.get(url + "/comentarios/").data
+        comentarios = self.client.get(url + "/comentarios/").data["results"]
         self.assertEqual([(c["autor"], c["texto"]) for c in comentarios], [("luis", "Revisando")])
 
-        historial = self.client.get(url + "/historial/").data
+        historial = self.client.get(url + "/historial/").data["results"]
         self.assertEqual([(h["campo"], h["valor_anterior"], h["valor_nuevo"], h["autor"]) for h in historial],
                          [("agente", None, "luis", "ana"), ("estado", "abierto", "en_progreso", "luis")])
 
@@ -108,7 +108,7 @@ class TicketApiTest(APITestCase):
             with self.subTest(ruta=ruta):
                 self.assertEqual(self.client.patch(url + ruta, datos, format="json").status_code, 400)
         self.assertEqual(Ticket.objects.get().estado, Estado.CERRADO)
-        self.assertEqual(len(self.client.get(url + "/historial/").data), 1)
+        self.assertEqual(self.client.get(url + "/historial/").data["count"], 1)
 
     def test_errores_de_validacion(self):
         url = f"/api/tickets/{self.crear()['id']}"
@@ -136,3 +136,12 @@ class TicketApiTest(APITestCase):
         url = f"/api/tickets/{self.crear()['id']}/"
         self.assertEqual(self.client.delete(url).status_code, 405)
         self.assertEqual(self.client.put(url, {}, format="json").status_code, 405)
+
+    def test_paginacion(self):
+        Ticket.objects.bulk_create(Ticket(asunto=f"t{i}", descripcion="x") for i in range(25))
+        primera = self.client.get("/api/tickets/").data
+        self.assertEqual((primera["count"], len(primera["results"])), (25, 20))
+        self.assertIsNotNone(primera["next"])
+        segunda = self.client.get(primera["next"]).data
+        self.assertEqual(len(segunda["results"]), 5)
+        self.assertIsNone(segunda["next"])

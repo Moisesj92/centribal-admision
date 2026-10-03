@@ -33,6 +33,11 @@ class TicketViewSet(
             return [permissions.AllowAny()]
         return super().get_permissions()
 
+    def _listar(self, queryset, serializer_class):
+        """Lista paginada igual que el listado principal (las @action no paginan solas)."""
+        pagina = self.paginate_queryset(queryset)
+        return self.get_paginated_response(serializer_class(pagina, many=True).data)
+
     def _actualizar(self, request, serializer_class):
         ticket = self.get_object()
         serializer = serializer_class(ticket, data=request.data, context=self.get_serializer_context())
@@ -60,9 +65,9 @@ class TicketViewSet(
             serializer.save(ticket=ticket, autor=request.user)
             ticket.save(update_fields=["actualizado"])
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(ComentarioSerializer(ticket.comentarios.select_related("autor"), many=True).data)
+        return self._listar(ticket.comentarios.select_related("autor"), ComentarioSerializer)
 
     @action(detail=True, methods=["get"], serializer_class=HistorialSerializer)
     def historial(self, request, pk=None):
         ticket = self.get_object()
-        return Response(HistorialSerializer(ticket.historial.select_related("autor"), many=True).data)
+        return self._listar(ticket.historial.select_related("autor"), HistorialSerializer)
