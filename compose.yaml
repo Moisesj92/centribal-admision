@@ -1,5 +1,5 @@
 # Uso:
-#   docker compose up -d                       desarrollo → http://localhost:8000
+#   docker compose up -d                       desarrollo → http://localhost:8000 (migra y crea la demo)
 #   docker compose watch                       igual, y reconstruye solo al cambiar requirements*.txt
 #   docker compose run --rm shell              terminal (tests, ejercicios, manage.py…)
 #   docker compose --profile prod up -d prod   imagen de producción → http://localhost:8001
@@ -28,7 +28,11 @@ services:
   # Desarrollo: runserver con recarga automática. Web en /, API en /api/, admin en /admin/.
   web:
     <<: *dev
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    # Al arrancar: migraciones → usuarios y tickets de demo (idempotente) → servidor.
+    command: >
+      sh -c "python manage.py migrate --noinput
+      && python manage.py preparar_demo
+      && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     healthcheck: *healthcheck

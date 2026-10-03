@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
-from soporte.models import Ticket
+from soporte.models import Estado, Ticket
 
 
 class CrearAgentesTest(TestCase):
@@ -33,3 +33,19 @@ class CrearAgentesTest(TestCase):
     def test_ana_no_entra_al_admin(self):
         self.client.force_login(self.usuarios["ana"])
         self.assertEqual(self.client.get("/admin/").status_code, 302)
+
+
+class PrepararDemoTest(TestCase):
+    def test_crea_usuarios_y_tickets_con_historial(self):
+        call_command("preparar_demo", stdout=StringIO())
+        self.assertEqual(get_user_model().objects.count(), 3)
+        self.assertEqual(Ticket.objects.count(), 5)
+        self.assertTrue(Ticket.objects.filter(estado=Estado.CERRADO).exists())
+        caida = Ticket.objects.get(asunto="Caída del servicio")
+        self.assertEqual(caida.historial.count(), 2)
+
+    def test_no_duplica_al_repetirse(self):
+        call_command("preparar_demo", stdout=StringIO())
+        call_command("preparar_demo", stdout=StringIO())
+        self.assertEqual(Ticket.objects.count(), 5)
+        self.assertEqual(get_user_model().objects.count(), 3)
