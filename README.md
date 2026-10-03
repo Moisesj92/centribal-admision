@@ -446,6 +446,7 @@ Resumen de [`docs/05-debug.md`](docs/05-debug.md):
 | 4 | `if`, `match`, bucles, excepciones, comprehensions | [04-estructuras-de-control.md](docs/04-estructuras-de-control.md) | `04_control.py` |
 | 5 | Debug: logging, pdb, debugpy + VS Code | [05-debug.md](docs/05-debug.md) | `05_debug.py` (con un bug para encontrar) |
 | 6 | Django por dentro: petición, rutas, ORM, validación, patrones | [06-django-por-dentro.md](docs/06-django-por-dentro.md) | `manage.py shell` |
+| 7 | Revisión de código y plan de mejoras (seguridad, integridad, producción) | [07-revision-y-plan.md](docs/07-revision-y-plan.md) | — |
 
 ```bash
 docker compose run --rm shell python ejercicios/02_bytecode.py
