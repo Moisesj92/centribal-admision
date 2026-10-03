@@ -2,7 +2,7 @@ from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Ticket
+from .models import ConflictoConcurrente, Ticket
 from .serializers import (
     AsignarSerializer,
     ComentarioSerializer,
@@ -37,7 +37,10 @@ class TicketViewSet(
         ticket = self.get_object()
         serializer = serializer_class(ticket, data=request.data, context=self.get_serializer_context())
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        try:
+            serializer.save()
+        except ConflictoConcurrente as error:
+            return Response({"detail": str(error)}, status=status.HTTP_409_CONFLICT)
         return Response(TicketSerializer(ticket).data)
 
     @action(detail=True, methods=["patch"], serializer_class=EstadoSerializer)

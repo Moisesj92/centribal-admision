@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import AsignarForm, ComentarioForm, EstadoForm, TicketForm
-from .models import Estado, Prioridad, Ticket
+from .models import ConflictoConcurrente, Estado, Prioridad, Ticket
 
 # Igual que EsAgente en la API: solo usuarios del grupo "Agentes". Si no, a la página de login.
 solo_agentes = user_passes_test(lambda usuario: usuario.is_authenticated and usuario.es_agente)
@@ -73,7 +73,11 @@ def cambiar_estado(request, pk):
     form = EstadoForm(request.POST, ticket=ticket)
     if not form.is_valid():
         return render(request, "soporte/detalle.html", _contexto_detalle(ticket, estado_form=form), status=400)
-    ticket.cambiar_estado(form.cleaned_data["estado"], autor=request.user)
+    try:
+        ticket.cambiar_estado(form.cleaned_data["estado"], autor=request.user)
+    except ConflictoConcurrente as error:
+        messages.error(request, str(error))
+        return redirect("ui:detalle", pk=pk)
     messages.success(request, f"Estado cambiado a «{ticket.get_estado_display()}».")
     return redirect("ui:detalle", pk=pk)
 
@@ -85,7 +89,11 @@ def asignar(request, pk):
     form = AsignarForm(request.POST, ticket=ticket)
     if not form.is_valid():
         return render(request, "soporte/detalle.html", _contexto_detalle(ticket, asignar_form=form), status=400)
-    ticket.asignar(form.cleaned_data["agente"], autor=request.user)
+    try:
+        ticket.asignar(form.cleaned_data["agente"], autor=request.user)
+    except ConflictoConcurrente as error:
+        messages.error(request, str(error))
+        return redirect("ui:detalle", pk=pk)
     messages.success(request, f"Asignado a {ticket.agente or 'nadie'}.")
     return redirect("ui:detalle", pk=pk)
 

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.utils import timezone
 
 from cuentas.models import GRUPO_AGENTES
 
@@ -17,6 +18,10 @@ class Estado(models.TextChoices):
     EN_PROGRESO = "en_progreso", "En progreso"
     RESUELTO = "resuelto", "Resuelto"
     CERRADO = "cerrado", "Cerrado"
+
+
+class ConflictoConcurrente(Exception):
+    """Otra petición cambió el ticket entre la lectura y la escritura (→ HTTP 409)."""
 
 
 # Un ticket cerrado no se reabre.
@@ -68,20 +73,35 @@ class Ticket(models.Model):
         if agente == self.agente:
             raise ValidationError("El ticket ya está asignado a ese agente.")
 
+    # Concurrencia optimista: la validación usa el estado leído en memoria, así que el UPDATE
+    # solo se aplica si la fila sigue igual que cuando se leyó. Si otra petición la cambió
+    # entretanto (p. ej. la cerró), no se actualiza ninguna fila y se lanza ConflictoConcurrente.
+    # Funciona en cualquier base de datos, también en SQLite, donde select_for_update no bloquea.
+
+    def _actualizar_si_no_cambio(self, condicion: dict, **cambios) -> None:
+        ahora = timezone.now()
+        filas = Ticket.objects.filter(pk=self.pk, **condicion).update(**cambios, actualizado=ahora)
+        if filas == 0:
+            raise ConflictoConcurrente("El ticket cambió mientras tanto. Recarga e inténtalo de nuevo.")
+        for campo, valor in cambios.items():
+            setattr(self, campo, valor)
+        self.actualizado = ahora
+
     @transaction.atomic
     def cambiar_estado(self, nuevo: str, autor) -> None:
         """Valida, cambia el estado y registra el historial en la misma transacción."""
         self.validar_estado(nuevo)
-        anterior, self.estado = self.estado, nuevo
-        self.save(update_fields=["estado", "actualizado"])
+        anterior = self.estado
+        self._actualizar_si_no_cambio({"estado": anterior}, estado=nuevo)
         self.historial.create(campo="estado", valor_anterior=anterior, valor_nuevo=nuevo, autor=autor)
 
     @transaction.atomic
     def asignar(self, agente, autor) -> None:
         self.validar_asignacion(agente)
         anterior = self.agente.get_username() if self.agente else None
-        self.agente = agente
-        self.save(update_fields=["agente", "actualizado"])
+        # Condición: mismo agente que al leer y que nadie lo haya cerrado entretanto.
+        condicion = {"agente": self.agente_id, "estado__in": [e for e in Estado if e != Estado.CERRADO]}
+        self._actualizar_si_no_cambio(condicion, agente=agente)
         self.historial.create(
             campo="agente",
             valor_anterior=anterior,
