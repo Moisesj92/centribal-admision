@@ -25,7 +25,7 @@ class AdminAuditoriaTest(TestCase):
         self.assertEqual(respuesta.status_code, 200)
         self.assertContains(respuesta, "original")
         self.assertNotContains(respuesta, 'name="comentarios-0-texto"')  # sin campo editable
-        self.assertNotContains(respuesta, 'name="historial-0-DELETE"')   # sin casilla de borrar
+        self.assertNotContains(respuesta, 'name="historial-0-DELETE"')  # sin casilla de borrar
 
     def test_agente_sin_is_staff_no_entra_al_admin(self):
         self.client.force_login(crear_agente("luis"))

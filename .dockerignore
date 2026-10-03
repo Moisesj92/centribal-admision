@@ -12,3 +12,4 @@ staticfiles/
 .DS_Store
 Dockerfile
 compose.yaml
+.ruff_cache/

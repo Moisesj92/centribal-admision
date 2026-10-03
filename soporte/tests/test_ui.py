@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from soporte.tests.utils import crear_agente
 from soporte.models import Estado, Ticket
+from soporte.tests.utils import crear_agente
 
 Usuario = get_user_model()
 
@@ -31,7 +31,9 @@ class UiTest(TestCase):
         self.assertTrue(Ticket.objects.filter(asunto="Impresora", estado=Estado.ABIERTO).exists())
 
     def test_formulario_con_errores(self):
-        respuesta = self.client.post(reverse("ui:nuevo"), {"asunto": " ", "descripcion": "", "prioridad": "x"})
+        respuesta = self.client.post(
+            reverse("ui:nuevo"), {"asunto": " ", "descripcion": "", "prioridad": "x"}
+        )
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(Ticket.objects.count(), 1)
         self.assertContains(respuesta, "errorlist")
@@ -83,7 +85,9 @@ class UiTest(TestCase):
         self.assertEqual(self.client.get(self.url("estado")).status_code, 405)
 
     def test_paginacion_conserva_filtros(self):
-        Ticket.objects.bulk_create(Ticket(asunto=f"t{i}", descripcion="x", prioridad="baja") for i in range(25))
+        Ticket.objects.bulk_create(
+            Ticket(asunto=f"t{i}", descripcion="x", prioridad="baja") for i in range(25)
+        )
         respuesta = self.client.get(reverse("ui:lista"), {"prioridad": "baja"})
         self.assertEqual(len(respuesta.context["pagina"].object_list), 20)
         self.assertContains(respuesta, "?prioridad=baja&amp;pagina=2")

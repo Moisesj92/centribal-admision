@@ -2,8 +2,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from soporte.tests.utils import crear_agente
 from soporte.models import Estado, Ticket
+from soporte.tests.utils import crear_agente
 
 Usuario = get_user_model()
 
@@ -32,7 +32,9 @@ class TicketApiTest(APITestCase):
 
     def test_crear_es_publico_y_tiene_valores_por_defecto(self):
         ticket = self.crear()
-        self.assertEqual((ticket["prioridad"], ticket["estado"], ticket["agente"]), ("media", "abierto", None))
+        self.assertEqual(
+            (ticket["prioridad"], ticket["estado"], ticket["agente"]), ("media", "abierto", None)
+        )
 
     def test_crear_ignora_estado_y_agente(self):
         ticket = self.crear(estado="cerrado", agente="luis")
@@ -98,12 +100,16 @@ class TicketApiTest(APITestCase):
         self.assertEqual([(c["autor"], c["texto"]) for c in comentarios], [("luis", "Revisando")])
 
         historial = self.client.get(url + "/historial/").data["results"]
-        self.assertEqual([(h["campo"], h["valor_anterior"], h["valor_nuevo"], h["autor"]) for h in historial],
-                         [("agente", None, "luis", "ana"), ("estado", "abierto", "en_progreso", "luis")])
+        self.assertEqual(
+            [(h["campo"], h["valor_anterior"], h["valor_nuevo"], h["autor"]) for h in historial],
+            [("agente", None, "luis", "ana"), ("estado", "abierto", "en_progreso", "luis")],
+        )
 
     def test_cerrado_no_se_reabre_ni_se_reasigna(self):
         url = f"/api/tickets/{self.crear()['id']}"
-        self.assertEqual(self.client.patch(url + "/estado/", {"estado": "cerrado"}, format="json").status_code, 200)
+        self.assertEqual(
+            self.client.patch(url + "/estado/", {"estado": "cerrado"}, format="json").status_code, 200
+        )
         for ruta, datos in (("/estado/", {"estado": "abierto"}), ("/asignar/", {"agente": "luis"})):
             with self.subTest(ruta=ruta):
                 self.assertEqual(self.client.patch(url + ruta, datos, format="json").status_code, 400)
@@ -118,7 +124,7 @@ class TicketApiTest(APITestCase):
             ("/estado/", {}),
             ("/asignar/", {"agente": "cliente"}),  # no es staff
             ("/asignar/", {"agente": "nadie"}),
-            ("/asignar/", {"agente": None}),      # ya está sin asignar
+            ("/asignar/", {"agente": None}),  # ya está sin asignar
         ]
         for ruta, datos in casos:
             with self.subTest(ruta=ruta, datos=datos):

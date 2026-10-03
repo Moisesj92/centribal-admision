@@ -65,21 +65,27 @@ class ConflictoEnInterfacesTest(TestCase):
         cls.ticket = Ticket.objects.create(asunto="VPN", descripcion="No conecta")
 
     conflicto = mock.patch.object(
-        Ticket, "_actualizar_si_no_cambio", side_effect=ConflictoConcurrente("El ticket cambió mientras tanto.")
+        Ticket,
+        "_actualizar_si_no_cambio",
+        side_effect=ConflictoConcurrente("El ticket cambió mientras tanto."),
     )
 
     def test_api_responde_409(self):
         cliente = APIClient()
         cliente.force_authenticate(self.ana)
         with self.conflicto:
-            respuesta = cliente.patch(f"/api/tickets/{self.ticket.pk}/estado/", {"estado": "cerrado"}, format="json")
+            respuesta = cliente.patch(
+                f"/api/tickets/{self.ticket.pk}/estado/", {"estado": "cerrado"}, format="json"
+            )
         self.assertEqual(respuesta.status_code, 409)
         self.assertIn("cambió", respuesta.data["detail"])
 
     def test_web_muestra_aviso(self):
         self.client.force_login(self.ana)
         with self.conflicto:
-            respuesta = self.client.post(f"/tickets/{self.ticket.pk}/estado/", {"estado": "cerrado"}, follow=True)
+            respuesta = self.client.post(
+                f"/tickets/{self.ticket.pk}/estado/", {"estado": "cerrado"}, follow=True
+            )
         self.assertContains(respuesta, "cambió mientras tanto")
         self.assertContains(respuesta, 'class="mensaje error"')
 

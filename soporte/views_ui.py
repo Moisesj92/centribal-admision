@@ -75,7 +75,9 @@ def cambiar_estado(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     form = EstadoForm(request.POST, ticket=ticket)
     if not form.is_valid():
-        return render(request, "soporte/detalle.html", _contexto_detalle(ticket, estado_form=form), status=400)
+        return render(
+            request, "soporte/detalle.html", _contexto_detalle(ticket, estado_form=form), status=400
+        )
     try:
         ticket.cambiar_estado(form.cleaned_data["estado"], autor=request.user)
     except ConflictoConcurrente as error:
@@ -91,7 +93,9 @@ def asignar(request, pk):
     ticket = get_object_or_404(Ticket.objects.select_related("agente"), pk=pk)
     form = AsignarForm(request.POST, ticket=ticket)
     if not form.is_valid():
-        return render(request, "soporte/detalle.html", _contexto_detalle(ticket, asignar_form=form), status=400)
+        return render(
+            request, "soporte/detalle.html", _contexto_detalle(ticket, asignar_form=form), status=400
+        )
     try:
         ticket.asignar(form.cleaned_data["agente"], autor=request.user)
     except ConflictoConcurrente as error:
@@ -107,7 +111,9 @@ def comentar(request, pk):
     ticket = get_object_or_404(Ticket, pk=pk)
     form = ComentarioForm(request.POST)
     if not form.is_valid():
-        return render(request, "soporte/detalle.html", _contexto_detalle(ticket, comentario_form=form), status=400)
+        return render(
+            request, "soporte/detalle.html", _contexto_detalle(ticket, comentario_form=form), status=400
+        )
     comentario = form.save(commit=False)  # crea el objeto sin guardarlo para completar ticket y autor
     comentario.ticket, comentario.autor = ticket, request.user
     comentario.save()

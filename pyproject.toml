@@ -1,0 +1,24 @@
+[project]
+name = "centribal-admision"
+version = "0.1.0"
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+extend-exclude = ["*/migrations/*", "*.md"]  # migraciones generadas; los .md se escriben a mano
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # estilo (pycodestyle)
+    "F",       # errores reales: imports y variables sin usar, nombres indefinidos (pyflakes)
+    "I",       # orden de imports
+    "UP",      # sintaxis moderna de Python
+    "B",       # trampas habituales (bugbear)
+    "SIM",     # simplificaciones
+    "DJ",      # buenas prácticas de Django
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Los ejercicios contienen errores a propósito para aprender a verlos.
+"ejercicios/*" = ["B006", "B018"]
