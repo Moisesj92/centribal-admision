@@ -93,3 +93,15 @@ class UiTest(TestCase):
         self.assertContains(respuesta, "?prioridad=baja&amp;pagina=2")
         segunda = self.client.get(reverse("ui:lista"), {"prioridad": "baja", "pagina": 2})
         self.assertEqual(len(segunda.context["pagina"].object_list), 5)
+
+    def test_menu_segun_rol(self):
+        enlace_tickets = f'href="{reverse("ui:lista")}">Tickets</a>'
+        enlace_admin = 'href="/admin/">Admin</a>'
+        respuesta = self.client.get(reverse("ui:nuevo"))  # sesión de ana (agente, no staff)
+        self.assertContains(respuesta, enlace_tickets)
+        self.assertNotContains(respuesta, enlace_admin)
+
+        self.client.logout()
+        respuesta = self.client.get(reverse("ui:nuevo"))
+        self.assertNotContains(respuesta, enlace_tickets)
+        self.assertNotContains(respuesta, enlace_admin)
