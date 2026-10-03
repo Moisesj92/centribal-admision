@@ -1,33 +1,38 @@
 # Revisión de código y plan de mejoras
 
-Revisión de la versión actual (commit `44b9c05`) con criterio de producción: seguridad, integridad de datos, operación y mantenibilidad. Los hallazgos marcados con **✔ verificado** se han reproducido ejecutando el código, no son suposiciones.
+Revisión de la versión del commit `44b9c05` con criterio de producción: seguridad, integridad de datos, operación y mantenibilidad. Los hallazgos marcados con **✔ verificado** se han reproducido ejecutando el código, no son suposiciones.
 
 **Severidad**: 🔴 alta (riesgo real de seguridad o de datos) · 🟠 media (problema serio al ir a producción o con carga) · 🟡 baja (calidad, mantenimiento).
+
+> **Alcance aplicado.** Es un proyecto de demostración que **no va a producción**. Se corrigió todo lo que afecta al diseño y a la corrección del código (✅, con su commit) y se descartó a propósito lo que solo importa al desplegar (⏭). Descartarlo es una decisión, no un olvido: cada punto ⏭ explica abajo cómo se resolvería.
+>
+> - **4 (credenciales de demo)**: la contraseña de `ana`/`luis` sigue en el código a propósito, para que quien revise pueda probar la demo sin configurar nada.
+> - **16 (parcial)**: el agente pasa a `PROTECT` (no se pierde la asignación sin historial). Reasignar automáticamente al quitar el rol queda fuera de alcance.
 
 ---
 
 ## Resumen
 
-| # | Hallazgo | Sev. | Dónde |
-|---|---|---|---|
-| 1 | Condición de carrera: un ticket cerrado puede acabar reabierto | 🔴 | `soporte/models.py` |
-| 2 | Configuración *fail-open*: sin variables de entorno arranca con DEBUG y una SECRET_KEY pública | 🔴 | `config/settings.py` |
-| 3 | Sin límite de peticiones: spam de tickets y fuerza bruta de contraseñas | 🔴 | API, login web, admin |
-| 4 | Contraseña de agentes en un repositorio público, y el seed se puede ejecutar en producción | 🔴 | `crear_agentes.py` |
-| 5 | Textos sin límite de tamaño (2 MB por ticket, sin autenticar) | 🟠 | `models.py` |
-| 6 | En producción los errores 500 no se registran en ningún sitio | 🟠 | `settings.py` (falta `LOGGING`) |
-| 7 | El rastro de auditoría se puede alterar desde el admin | 🟠 | `admin.py` |
-| 8 | "Agente" = `is_staff`: todo agente entra al admin y no hay roles | 🟠 | modelo de permisos |
-| 9 | Tokens de API en claro en la BD y sin caducidad | 🟠 | `rest_framework.authtoken` |
-| 10 | Sin paginación: los listados devuelven todo | 🟠 | API |
-| 11 | Falta configuración HTTPS y cabeceras de seguridad para producción | 🟠 | `settings.py` |
-| 12 | SQLite con varios workers de gunicorn | 🟠 | `prod` |
-| 13 | Sin modelo de usuario propio | 🟠 | estructura |
-| 14 | Reglas sin respaldo en la base de datos (sin `CheckConstraint`) | 🟡 | `models.py` |
-| 15 | Código muerto y duplicado | 🟡 | varios |
-| 16 | Efectos sin historial al borrar o degradar un agente | 🟡 | `models.py` |
-| 17 | Cadena de suministro y Docker: sin lockfile, imagen sin fijar, `prod` con archivos de más | 🟡 | Docker |
-| 18 | Sin CI, linter ni verificación de tipos | 🟡 | repositorio |
+| # | Hallazgo | Sev. | Dónde | Estado |
+|---|---|---|---|---|
+| 1 | Condición de carrera: un ticket cerrado puede acabar reabierto | 🔴 | `soporte/models.py` | ✅ `60d715e` |
+| 2 | Configuración *fail-open*: sin variables de entorno arranca con DEBUG y una SECRET_KEY pública | 🔴 | `config/settings.py` | ⏭ producción |
+| 3 | Sin límite de peticiones: spam de tickets y fuerza bruta de contraseñas | 🔴 | API, login web, admin | ⏭ producción |
+| 4 | Contraseña de agentes en un repositorio público, y el seed se puede ejecutar en producción | 🔴 | `crear_agentes.py` | ⏭ demo (ver nota) |
+| 5 | Textos sin límite de tamaño (2 MB por ticket, sin autenticar) | 🟠 | `models.py` | ✅ `4b09912` |
+| 6 | En producción los errores 500 no se registran en ningún sitio | 🟠 | `settings.py` (falta `LOGGING`) | ⏭ producción |
+| 7 | El rastro de auditoría se puede alterar desde el admin | 🟠 | `admin.py` | ✅ `0792d18` |
+| 8 | "Agente" = `is_staff`: todo agente entra al admin y no hay roles | 🟠 | modelo de permisos | ✅ `d22588c` |
+| 9 | Tokens de API en claro en la BD y sin caducidad | 🟠 | `rest_framework.authtoken` | ⏭ producción |
+| 10 | Sin paginación: los listados devuelven todo | 🟠 | API | ✅ `c0568d5` |
+| 11 | Falta configuración HTTPS y cabeceras de seguridad para producción | 🟠 | `settings.py` | ⏭ producción |
+| 12 | SQLite con varios workers de gunicorn | 🟠 | `prod` | ⏭ producción |
+| 13 | Sin modelo de usuario propio | 🟠 | estructura | ✅ `d22588c` |
+| 14 | Reglas sin respaldo en la base de datos (sin `CheckConstraint`) | 🟡 | `models.py` | ✅ `4b09912` |
+| 15 | Código muerto y duplicado | 🟡 | varios | ✅ `4b09912` |
+| 16 | Efectos sin historial al borrar o degradar un agente | 🟡 | `models.py` | ✅ `4b09912` (parcial) |
+| 17 | Cadena de suministro y Docker: sin lockfile, imagen sin fijar, `prod` con archivos de más | 🟡 | Docker | ⏭ producción |
+| 18 | Sin CI, linter ni verificación de tipos | 🟡 | repositorio | ✅ `621c744`, `91cb134` (Ruff + CI; mypy pendiente) |
 
 ---
 

@@ -187,7 +187,7 @@ form.is_valid()
      ├─ por cada campo:  to_python()     "3" → 3, texto → fecha…        (tipo)
      │                   validate()      obligatorio, choices            (campo)
      │                   run_validators  max_length, EmailValidator…     (campo)
-     │                   clean_<campo>() ← TU método, p. ej. clean_asunto (campo)
+     │                   clean_<campo>() ← TU método, p. ej. EstadoForm.clean_estado
      ├─ clean()          ← TU método para reglas entre varios campos (AsignarForm.clean)
      └─ (ModelForm) instance.full_clean()  validación del modelo
  → form.errors / form.cleaned_data
